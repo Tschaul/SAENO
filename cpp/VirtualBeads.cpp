@@ -79,8 +79,8 @@ class VirtualBeads{
     void computeConconnections_Laplace(FiniteBodyForces& M);
 
     void mulA(std::vector<double>& u, std::vector<double>& f, const FiniteBodyForces& M);
-    double solve_CG(FiniteBodyForces& M, bool local);
-    vec3D relax(FiniteBodyForces& M, bool local);
+    double solve_CG(FiniteBodyForces& M);
+    vec3D relax(FiniteBodyForces& M);
 
     double testDrift(const stack3D& stack1, const stack3D& stack2, vec3D D);
 
@@ -90,7 +90,7 @@ class VirtualBeads{
     vec3D findDrift(const stack3D& stack1, const stack3D& stack2);
     vec3D findDriftCoarse(const stack3D& stack1, const stack3D& stack2, double range, double step);
 
-    void computeAAndb(FiniteBodyForces& M, double lambda, double lambda2);
+    void computeAAndb(FiniteBodyForces& M, double alpha);
     void recordRelaxationStatus(FiniteBodyForces& M, DRec3D& relrec);
 
     void updateLocalWeigth(const FiniteBodyForces& M);
@@ -252,8 +252,6 @@ void VirtualBeads::findBeads(const stack3D& stackr){
 
     int i,j,k;
 
-    mat3D T=mat3D();
-
     mat3D Scale=mat3D(1.0/dX,0.0,0.0,0.0,1.0/dY,0.0,0.0,0.0,1.0/dZ);
 
     vec3D scaledShift=vec3D(sX/2,sY/2,sZ/2);
@@ -362,7 +360,7 @@ void VirtualBeads::loadGuess(FiniteBodyForces& M){
     U_guess.clear();
     U_guess.assign(R_found.size(),vec3D(0.0,0.0,0.0));
 
-    for(auto i=0; i<R_found.size(); i++) for(auto itIT=I[i].begin(); itIT!=I[i].end(); itIT++) {
+    for(unsigned int i=0; i<R_found.size(); i++) for(auto itIT=I[i].begin(); itIT!=I[i].end(); itIT++) {
 
         //auto j=itIT->first;
 
@@ -528,8 +526,6 @@ void VirtualBeads::computeInterpolationMatrix(const FiniteBodyForces& M){
 
     int i=0;
     int iend=R_found.size();
-
-    mat3D indentity=mat3D(1.0,0.0,0.0, 0.0,1.0,0.0, 0.0,0.0,1.0);
 
     I.resize(iend);
     for(int i=0; i<(iend); i++) I[i].clear();
@@ -737,7 +733,7 @@ void VirtualBeads::computeInterpolationMatrix(const FiniteBodyForces& M){
 
 void VirtualBeads::computeConconnections(FiniteBodyForces& M){
 
-    int c1,c2,c3; //tt,t1,t2,
+    unsigned int c1,c2,c3; //tt,t1,t2,
 
     conconnections.resize(M.N_c);
 
@@ -786,7 +782,7 @@ void VirtualBeads::computeConconnections(FiniteBodyForces& M){
 
 void VirtualBeads::computeConconnections_Laplace(FiniteBodyForces& M){
 
-    int c1,c2,c3; //tt,t1,t2,
+    unsigned int c1,c2,c3;   //tt,t1,t2,
 
     oldconconnections=std::vector< std::list<size_t> >(conconnections);
 
@@ -865,7 +861,7 @@ vec3D VirtualBeads::findDriftCoarse(const stack3D& stackr, const stack3D& stacka
     //recxyz.store("coarsdriftxyz.dat");
     //recS.store("coarsdriftS.dat");
 
-    return vec3D(dxmax,dymax,dymax);
+    return vec3D(dxmax,dymax,dzmax);
 
 }
 
@@ -916,9 +912,9 @@ vec3D VirtualBeads::findDrift(const stack3D& stackr, const stack3D& stacka){
 
     double mx,my,mz,stdx,stdy,stdz;
 
-    int i;
+    unsigned int i;
 
-    int ii;
+    unsigned int ii;
 
     for(ii=0; (ii<100000 && !done); ii++){
 
@@ -1057,8 +1053,6 @@ void VirtualBeads::findDisplacements(const stack3D& stack_r, const stack3D& stac
 
     vec3D R,U;
 
-    mat3D T=mat3D();
-
     U_found.assign(M.N_c,vec3D(0.0,0.0,0.0));
     S_0.assign(M.N_c,0.0);
 
@@ -1074,8 +1068,6 @@ void VirtualBeads::findDisplacements(const stack3D& stack_r, const stack3D& stac
     int tend=M.R.size();
 
     vec3D U_new,Umean;
-
-    int count,tt;
 
     double Stemp=0.0;
 
@@ -1177,10 +1169,8 @@ void VirtualBeads::findDisplacementsScattered(const stack3D& stack_r, const stac
 
     vec3D R,U;
 
-    mat3D T=mat3D();
-
-    int t;
-    int tend=R_found.size();
+    unsigned int t;
+    unsigned int tend=R_found.size();
 
     U_found.assign(tend,vec3D(0.0,0.0,0.0));
     S_0.assign(tend,0.0);
@@ -1195,16 +1185,12 @@ void VirtualBeads::findDisplacementsScattered(const stack3D& stack_r, const stac
 
     vec3D U_new,Umean;
 
-    int count,tt;
-
     double Stemp=0.0;
 
     int n=0;
 
     std::list<double> Sd;
     std::list<vec3D> Ud;
-
-    double dx,dy,dz;
 
     bool guesspresent=(U_guess.size()>0);
 
@@ -1298,8 +1284,6 @@ void VirtualBeads::refineDisplacements(const stack3D& stack_r, const stack3D& st
 
     vec3D Umean,U_new,R;
 
-    double Sold;
-
     for(int i=0; i<Nrenew; i++){
 
         std::cout<<"refining displacements: "<<(floor((i/(Nrenew+0.0))*1000)+0.0)/10.0<<"%     S="<<Svalues[i]<<"            \r";
@@ -1350,7 +1334,7 @@ void VirtualBeads::refineDisplacements(const stack3D& stack_r, const stack3D& st
 
 }
 
-void VirtualBeads::computeAAndb(FiniteBodyForces& M, double lambda, double lambda2){
+void VirtualBeads::computeAAndb(FiniteBodyForces& M, double alpha){
 
     bool uselaplace=(std::string(CFG["REGMETHOD"])=="laplace");
 
@@ -1365,13 +1349,11 @@ void VirtualBeads::computeAAndb(FiniteBodyForces& M, double lambda, double lambd
     A_j.resize(M.N_c);
     b.resize(M.N_c);
 
-    double mod;
-
-    int i,j,k,saddlecount=0;
+    int i,j,k;
 
     mat3D A_ijtemp,KA_ik,AK_kj,KL_ik,LK_kj,KApL2_ij;
 
-    bool hasentry,ifound,jfound;
+    bool hasentry;
 
     std::list<size_t>::iterator it,itj,it2;
 
@@ -1440,10 +1422,10 @@ void VirtualBeads::computeAAndb(FiniteBodyForces& M, double lambda, double lambd
                         else AK_kj=mat3D(0.0,0.0,0.0, 0.0,0.0,0.0, 0.0,0.0,0.0);
 
 
-                        A_ijtemp+=KA_ik*AK_kj*lambda2*localweight[k];
-                        //A_ijtemp+=AK_ik*LK_kj*lambda2*sqrt(localweight[k]*lagrain);
-                        //A_ijtemp+=LK_ik*AK_kj*lambda2*sqrt(localweight[j]*lagrain);
-                        A_ijtemp+=KL_ik*LK_kj*lambda2*lagrain;
+                        A_ijtemp+=KA_ik*AK_kj*alpha*localweight[k];
+                        //A_ijtemp+=AK_ik*LK_kj*alpha*sqrt(localweight[k]*lagrain);
+                        //A_ijtemp+=LK_ik*AK_kj*alpha*sqrt(localweight[j]*lagrain);
+                        A_ijtemp+=KL_ik*LK_kj*alpha*lagrain;
 
 
                     }else{
@@ -1451,7 +1433,7 @@ void VirtualBeads::computeAAndb(FiniteBodyForces& M, double lambda, double lambd
                         KA_ik=M.K_glo[i][k];
                         AK_kj=M.K_glo[k][j];
 
-                        A_ijtemp+=KA_ik*AK_kj*lambda2*localweight[k];
+                        A_ijtemp+=KA_ik*AK_kj*alpha*localweight[k];
 
                     }
 
@@ -1545,8 +1527,8 @@ void VirtualBeads::computeAAndb(FiniteBodyForces& M, double lambda, double lambd
 
             if(M.var[j]){
 
-                b[i]+=M.K_glo[i][j]*f[j]*lambda2*localweight[j];
-                if(uselaplace) b[i]+=M.K_glo[i][j]*llf[j]*lambda2*lagrain;
+                b[i]+=M.K_glo[i][j]*f[j]*alpha*localweight[j];
+                if(uselaplace) b[i]+=M.K_glo[i][j]*llf[j]*alpha*lagrain;
 
             }
 
@@ -1593,7 +1575,7 @@ void VirtualBeads::mulA(std::vector<double>& u, std::vector<double>& f, const Fi
 
 void VirtualBeads::recordRelaxationStatus(FiniteBodyForces& M, DRec3D& relrec){
 
-    double Uf=0.0,ff=0.0,L=0.0,u2=0.0,uuf2=0.0,suuf=0.0;
+    double ff=0.0,L=0.0,u2=0.0,uuf2=0.0,suuf=0.0;
 
     bool scatteredInput=bool(CFG["SCATTEREDRFOUND"]);
 
@@ -1605,10 +1587,8 @@ void VirtualBeads::recordRelaxationStatus(FiniteBodyForces& M, DRec3D& relrec){
 
     vec3D btemp;
 
-    double lambda=double(CFG["LAMBDA"]);
-
-    double lambda2=lambda;
-    double llambda_z=double(CFG["REG_SIGMAZ"]);
+    double alpha=double(CFG["ALPHA"]);
+    double sigz=double(CFG["REG_SIGMAZ"]);
 
 
     // Displ. part of penalty function
@@ -1621,7 +1601,7 @@ void VirtualBeads::recordRelaxationStatus(FiniteBodyForces& M, DRec3D& relrec){
 
             //Uf+=abs(U_found[b]);
             btemp=(U_found[b]-M.U[b]);
-            btemp.z*=llambda_z;
+            btemp.z*=sigz;
             uuf2+=norm(btemp);
             suuf+=abs(btemp);
             bcount++;
@@ -1633,7 +1613,7 @@ void VirtualBeads::recordRelaxationStatus(FiniteBodyForces& M, DRec3D& relrec){
         //std::vector< vec3D > u=std::vector< vec3D >();
         //u.assign(M.N_c,vec3D(0.0,0.0,0.0));
 
-        for(auto i=0; i<U_found.size(); i++){
+        for(unsigned int i=0; i<U_found.size(); i++){
 
             bcount++;
 
@@ -1645,7 +1625,7 @@ void VirtualBeads::recordRelaxationStatus(FiniteBodyForces& M, DRec3D& relrec){
 
             }
 
-            btemp.z*=llambda_z;
+            btemp.z*=sigz;
 
             uuf2+=norm(btemp);
             suuf+=abs(btemp);
@@ -1681,7 +1661,7 @@ void VirtualBeads::recordRelaxationStatus(FiniteBodyForces& M, DRec3D& relrec){
 
     for(b=0; b<M.N_c; b++) if(M.var[b])  ff+=norm(f[b])*localweight[b];
 
-    L=lambda2*ff+uuf2;
+    L=alpha*ff+uuf2;
 
     std::cout<<"|u-uf|^2 = "<<uuf2<<"\t\tperbead="<<suuf/(bcount+0.0)<<"   \n";
     std::cout<<"|w*f|^2  = "<<ff<<"\t\t|u|^2 = "<<u2<<"        \n";
@@ -1696,18 +1676,16 @@ void VirtualBeads::recordRelaxationStatus(FiniteBodyForces& M, DRec3D& relrec){
 }
 
 
-vec3D VirtualBeads::relax(FiniteBodyForces& M, bool local=false){
+vec3D VirtualBeads::relax(FiniteBodyForces& M){
 
     double lagrain=double(CFG["REG_LAPLACEGRAIN"]);
     lagrain=lagrain*lagrain;
 
     DRec3D relrec=DRec3D();
 
-    double lambda=double(CFG["LAMBDA"]);
-    double lambda2=lambda;
+    double alpha=double(CFG["ALPHA"]);
 
     localweight.assign(M.N_c,1.0);
-    //for(int c=0; c<M.N_c; c++) if(outofstack[c]) localweight[c]=double(CFG["LAMBDA2"]);
 
     std::cout<<"going to update glo f and K\n";
 
@@ -1722,8 +1700,8 @@ vec3D VirtualBeads::relax(FiniteBodyForces& M, bool local=false){
     for(int i=0; i<i_max; i++){
 
         if(std::string(CFG["REGMETHOD"])!=std::string("normal")) updateLocalWeigth(M);
-        computeAAndb(M,1.0,lambda2);
-        double uu=solve_CG(M,local);
+        computeAAndb(M,alpha);
+        double uu=solve_CG(M);
 
         M.updateGloFAndK();
 
@@ -1772,7 +1750,7 @@ vec3D VirtualBeads::relax(FiniteBodyForces& M, bool local=false){
 }
 
 
-double VirtualBeads::solve_CG(FiniteBodyForces& M, bool local=false){
+double VirtualBeads::solve_CG(FiniteBodyForces& M){
 
     //b=f_glo
     //A=K_glo
@@ -1781,7 +1759,7 @@ double VirtualBeads::solve_CG(FiniteBodyForces& M, bool local=false){
 
     int maxiter=25*floor(pow(M.N_c,0.33333)+0.5);
 
-    double resid,alpha_0,beta_0,rho_0,rho1_0,alpha,rsnew;
+    double resid,alpha,rsnew;
 
     std::vector<double> pp, zz, qq, rr, kk, uu, ff,fff, Ap;
 
@@ -1809,7 +1787,6 @@ double VirtualBeads::solve_CG(FiniteBodyForces& M, bool local=false){
 
     double normb=imul(ff,ff);
 
-    double norm0=normb;
     //std::cout<<ff[0]<<" "<<ff[1]<<" "<<ff[2]<<" "<<ff[3]<<" "<<ff[4]<<" "<<ff[5]<<" "<<ff[6]<<std::endl;
 
     if(normb>tol){

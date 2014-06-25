@@ -28,29 +28,34 @@
 #include <string>
 #include <sstream>
 
+//original source code was split into header and source file
+
 class Chameleon {
-public:
-  Chameleon() {};
-  explicit Chameleon(const std::string&);
-  explicit Chameleon(float);
-  explicit Chameleon(double);
-  explicit Chameleon(int);
-  explicit Chameleon(const char*);
 
-  Chameleon(const Chameleon&);
-  Chameleon& operator=(Chameleon const&);
+    public:
+        Chameleon() {};
+        explicit Chameleon(const std::string&);
+        explicit Chameleon(float); //not included in original source
+        explicit Chameleon(double);
+        explicit Chameleon(int); //not included in original source
+        explicit Chameleon(const char*);
 
-  Chameleon& operator=(float);
-  Chameleon& operator=(std::string const&);
+        Chameleon(const Chameleon&);
+        Chameleon& operator=(Chameleon const&);
 
-public:
-  operator std::string() const;
-  operator float     () const;
-  operator double     () const;
-  operator int     () const;
-  operator bool     () const;
-private:
-  std::string value_;
+        Chameleon& operator=(float);
+        Chameleon& operator=(std::string const&);
+
+    public:
+        operator std::string() const;
+        operator float     () const; //not included in original source
+        operator double     () const;
+        operator int     () const; //not included in original source
+        operator bool     () const; //not included in original source
+
+    private:
+        std::string value_;
+
 };
 
 
@@ -91,7 +96,7 @@ Chameleon& Chameleon::operator=(Chameleon const& other) {
   return *this;
 }
 
-Chameleon& Chameleon::operator=(float i) {
+Chameleon& Chameleon::operator=(float i) { //not included in original source
   std::ostringstream s;
   s << i;
   value_ = s.str();
@@ -107,7 +112,7 @@ Chameleon::operator std::string() const {
   return value_;
 }
 
-Chameleon::operator float() const {
+Chameleon::operator float() const { //not included in original source
   return atof(value_.c_str());
 }
 
@@ -115,11 +120,11 @@ Chameleon::operator double() const {
   return atof(value_.c_str());
 }
 
-Chameleon::operator int() const {
+Chameleon::operator int() const { //not included in original source
   return floor(atof(value_.c_str()));
 }
 
-Chameleon::operator bool() const {
+Chameleon::operator bool() const { //not included in original source
   if(atof(value_.c_str())!=0.0) return true;
   else return false;
 }

@@ -1,7 +1,7 @@
 
 #define PI 3.141592653589793238462643383279502884197169399375105
 
-#define VERSION 0.2
+#define VERSION 0.4
 #define _GNU_SOURCE
 #undef __STRICT_ANSI__
 
@@ -59,17 +59,10 @@ std::string FloatToStr( float n ) {
 int main(int argc,char *argv[])
 {
 
-//    _clearfp();
-//       unsigned unused_current_word = 0;
-//       // clearing the bits unmasks (throws) the exception
-//       _controlfp_s(&unused_current_word, 0, _EM_OVERFLOW | _EM_ZERODIVIDE);  // _controlfp_s is the secure version of _controlfp
-
-
-    int a;
-
     if(std::string(argv[1])=="-v"){
 
         std::cout<<"SAENO "<<VERSION<<"\n";
+        std::cin.ignore();
         exit(2);
 
     }
@@ -86,7 +79,12 @@ int main(int argc,char *argv[])
 
     loadDefaults(CFG);
 
-    if(argc>1) for(int a=1; a<argc; a=a+2) if(std::string(argv[a])=="CONFIG") loadConfigFile(CFG,argv[a+1]);
+    if(argc>1) for(int a=1; a<argc; a=a+2) if(std::string(argv[a])=="CONFIG") loadConfigFile(CFG,argv[a+1],results);
+
+    if(std::string(results["ERROR"])!=std::string(Chameleon(""))) {
+        std::cin.ignore();
+        exit(2);
+    }
 
     if(argc>1) for(int a=1; a<argc; a=a+2){
 
@@ -103,20 +101,6 @@ int main(int argc,char *argv[])
     }else{
         std::cout<<"WARNING: DATAOUT directory allready exists. Overwriting old results.   \n";
     }
-
-//    int mkdirerror=mkdir(outdir.c_str(),777);
-
-//    if(mkdirerror!=0){
-
-//        if(errno==EEXIST) std::cout<<"WARNING: DATAOUT directory allready exists. Overwriting old results.   \n";
-//        else {
-//            std::cout<<"ERROR: DATAOUT directory could not be created    \nHINT: Parent directory must allready exist \n";
-//            std::cout<<"DATAOUT = "<<outdir<<"\n";
-//            std::cin>>a;
-//            return -1;
-//        }
-
-//    }
 
     FiniteBodyForces M=FiniteBodyForces();
 
@@ -193,7 +177,7 @@ int main(int argc,char *argv[])
 
             stack3D stacka;
 
-            readStack(stacka,std::string(CFG["STACKA"]),int(CFG["ZFROM"]),int(CFG["ZTO"]),int(CFG["JUMP"]),int(CFG["BITDEPTH"]));
+            readStack(stacka,std::string(CFG["STACKA"]),int(CFG["ZFROM"]),int(CFG["ZTO"]),int(CFG["JUMP"]));
 
             //saveStack(stacka,outdir+std::string("/stacka"));
 
@@ -211,7 +195,7 @@ int main(int argc,char *argv[])
 
             if(bool(CFG["ALLIGNSTACKS"])){
 
-                readStack(stackro,std::string(CFG["STACKR"]),int(CFG["ZFROM"]),int(CFG["ZTO"]),int(CFG["JUMP"]),int(CFG["BITDEPTH"]));
+                readStack(stackro,std::string(CFG["STACKR"]),int(CFG["ZFROM"]),int(CFG["ZTO"]),int(CFG["JUMP"]));
                 stackr=stack3D();
 
                 B.Drift=B.findDriftCoarse(stackro,stacka,float(CFG["DRIFT_RANGE"]),float(CFG["DRIFT_STEP"]));
@@ -238,7 +222,7 @@ int main(int argc,char *argv[])
                 stackro.clear();
 
 
-            }else readStack(stackr,std::string(CFG["STACKR"]),int(CFG["ZFROM"]),int(CFG["ZTO"]),int(CFG["JUMP"]),int(CFG["BITDEPTH"]));
+            }else readStack(stackr,std::string(CFG["STACKR"]),int(CFG["ZFROM"]),int(CFG["ZTO"]),int(CFG["JUMP"]));
 
 
             //saveStack(stackr,outdir+std::string("/stackr"));
@@ -335,15 +319,9 @@ int main(int argc,char *argv[])
 
             if( doreg ){
 
-                int c;
-
-                int bcount=0;
-
-                float lambda=float(CFG["LAMBDA"]);
-
                 if(bool(CFG["BOXMESH"])){
 
-                    M.shrinkToSubmesh(1);
+                    //M.shrinkToSubmesh(1);
                     //setOuterSurf(int(CFG["BM_N"]),1,M.var,false);
 
                 }else{
@@ -371,7 +349,7 @@ int main(int argc,char *argv[])
 
                 if(bool(CFG["BOXMESH"])){
 
-                    M.shrinkToSubmesh(1);
+                    //M.shrinkToSubmesh(1);
                     //setOuterSurf(int(CFG["BM_N"]),1,M.var,false);
 
                 }else{
@@ -402,8 +380,8 @@ int main(int argc,char *argv[])
 
                 if(bool(CFG["BOXMESH"])){
 
-                    M.shrinkToSubmesh(1);
-                    setOuterSurf(int(CFG["BM_N"]),1,M.var,false);
+                    //M.shrinkToSubmesh(1);
+                    //setOuterSurf(int(CFG["BM_N"]),1,M.var,false);
 
                 }else{
 
@@ -425,7 +403,7 @@ int main(int argc,char *argv[])
 
             std::cout<<"SAVE RESULTS                  \n";
 
-            M.prolongToGrain(1);
+            //M.prolongToGrain(1);
 
             finish = clock();
             CFG["TIME_REGULARIZATION"]=( (finish - start)/CLOCKS_PER_SEC );

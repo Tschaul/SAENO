@@ -16,11 +16,16 @@ std::string trim(std::string const& source, char const* delims = " \t\r\n") {
   return result;
 }
 
-void loadConfigFile(config& CFG, std::string const& filename) {
+void loadConfigFile(config& CFG, std::string const& filename, config& results) {
 
   std::ifstream file(filename.c_str());
 
-  if(file.fail()) std::cout<<"ERROR in loadConfigFile: \""<<filename.c_str()<<"\" not found\n";
+  if(file.fail()){
+
+      std::cout<<"ERROR in loadConfigFile: \""<<filename.c_str()<<"\" not found\n";
+      results["ERROR"]=Chameleon(std::string(results["ERROR"])+std::string("ERROR in loadConfigFile: \"")+filename+std::string("\" not found\n"));
+
+  }
 
   std::string line;
   std::string name;
@@ -40,6 +45,8 @@ void loadConfigFile(config& CFG, std::string const& filename) {
     CFG[name]=Chameleon(value);
 
   }
+
+
 }
 
 void saveConfigFile(config& CFG, std::string const& filename) {
@@ -102,8 +109,7 @@ void loadDefaults(std::map<std::string, Chameleon>& CFG){
     CFG["RFOUND"]=Chameleon("Rfound.dat"); //remove
 
     //regularizeDeformations
-    CFG["LAMBDA"]=Chameleon("1.0");
-    CFG["LAMBDA2"]=Chameleon("1.0");
+    CFG["ALPHA"]=Chameleon("1.0");
     CFG["REGMETHOD"]=Chameleon("robust");
     CFG["ROBUSTMETHOD"]=Chameleon("huber");
     CFG["REG_LAPLACEGRAIN"]=Chameleon("15.0");
@@ -120,7 +126,6 @@ void loadDefaults(std::map<std::string, Chameleon>& CFG){
     CFG["STACKR"]=Chameleon("");
     CFG["ZFROM"]=Chameleon("");
     CFG["ZTO"]=Chameleon("");
-    CFG["BITDEPTH"]=Chameleon(8);
     CFG["VOXELSIZEX"]=Chameleon(1.0);
     CFG["VOXELSIZEY"]=Chameleon(1.0);
     CFG["VOXELSIZEZ"]=Chameleon(1.0);

@@ -418,7 +418,7 @@ vec3D findLocalDisplacement(const substack substackr ,const stack3D& stacka, vec
 
     double mx,my,mz,stdx,stdy,stdz;
 
-    int i;
+    unsigned int i;
 
     int ii;
 
@@ -772,7 +772,7 @@ void blur(stack3D& stack, stack3D& stack2 , int kernelsize){
     }
 }
 
-stack2D slice(stack3D& stack, double theta, double phi, int thickness, double shift){
+stack2D slice(stack3D& stack, double theta, double phi, int thickness){
 
 
     int sizeX=stack.size();
@@ -950,11 +950,12 @@ void allignStacks(const stack3D& stackr, const stack3D& stackao, stack3D& stacka
     int r0=3,r=3;
     int ddx=3,ddy=3;
 
+    int dx_opt=0;
+    int dy_opt=0;
+    int z2_opt=0;
+
     for(int z=0; z<sZ; z++){
 
-        int dx_opt;
-        int dy_opt;
-        int z2_opt;
 
         if( z<(safety+r0) ){
             r=r0+safety;
@@ -1156,11 +1157,12 @@ void allignStacks_new(const stack3D& stackr, const stack3D& stackao, stack3D& st
     int r0=3,r=3;
     int ddx=3,ddy=3;
 
+    int dx_opt=0;
+    int dy_opt=0;
+    int z2_opt=0;
+
     for(int z=0; z<sZ; z++){
 
-        int dx_opt;
-        int dy_opt;
-        int z2_opt;
 
         if( z<(safety+r0) ){
             r=r0+safety;
@@ -1369,7 +1371,7 @@ std::string renderFilename(std::string fnamebase, int z){
 
 }
 
-void readStack(stack3D& stack, std::string fnamebase, int zfrom, int zto, int jump=1, int bitdepth=8){
+void readStack(stack3D& stack, std::string fnamebase, int zfrom, int zto, int jump=1){
 
     //cimg::exception_mode(0);
 
@@ -1453,7 +1455,7 @@ void readStack(stack3D& stack, std::string fnamebase, int zfrom, int zto, int ju
     }
 }
 
-std::multiset<std::tuple<unsigned char,int,int,int>> findLocalMinima(const stack3D& stack,int dx,int dy,int dz,int maxcount){
+std::multiset<std::tuple<unsigned char,int,int,int>> findLocalMinima(const stack3D& stack,int dx,int dy,int dz,unsigned int maxcount){
 
     int sX=stack.size();
     int sY=stack[0].size();
@@ -1513,7 +1515,7 @@ std::multiset<std::tuple<unsigned char,int,int,int>> findLocalMinima(const stack
 
 }
 
-std::multiset<std::tuple<unsigned char,int,int,int>> findLocalMaxima(const stack3D& stack,int dx,int dy,int dz,int maxcount){
+std::multiset<std::tuple<unsigned char,int,int,int>> findLocalMaxima(const stack3D& stack,int dx,int dy,int dz,unsigned int maxcount){
 
     int sX=stack.size();
     int sY=stack[0].size();
@@ -1547,7 +1549,7 @@ std::multiset<std::tuple<unsigned char,int,int,int>> findLocalMaxima(const stack
 
             if(max){
 
-                if(vlist.size()>maxcount-1){
+                if(vlist.size()>=maxcount){
 
                     if(stack[i][j][k]>std::get<0>(*vlist.begin())){
 

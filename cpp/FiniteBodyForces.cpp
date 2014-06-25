@@ -398,7 +398,7 @@ void FiniteBodyForces::loadConfiguration(std::string Uname){
 
 void FiniteBodyForces::computeConnections(){
 
-    int tt,t1,t2,c1,c2;
+    unsigned int tt,t1,t2,c1,c2;
 
     connections.resize(N_c);
 
@@ -1232,10 +1232,10 @@ void FiniteBodyForces::computeForceMoments(config& results){
 
     buildBeams(vecs, 150);
 
-    double fmax=0,fmin=0,mmax,mmin;
+    double fmax=0.0,fmin=0.0,mmax=0.0,mmin=0.0;
     int bmax=0,bmin=0;
 
-    for(int b=0; b<vecs.size(); b++){
+    for(unsigned int b=0; b<vecs.size(); b++){
 
         double ff=0.0,mm=0.0; //s1=0.0,
 
@@ -1611,7 +1611,7 @@ void FiniteBodyForces::storeFden(std::string Fdenname){
     std::vector<double> Vr;
     Vr.assign(N_c,0.0);
 
-    for(int64_t tt; tt<N_T; tt++) for(int t=0; t<4; t++) Vr[T[tt][t]]+=V[tt]*0.25;
+    for(int64_t tt=0; tt<N_T; tt++) for(int t=0; t<4; t++) Vr[T[tt][t]]+=V[tt]*0.25;
 
     DRec3D Frec=DRec3D();
 
