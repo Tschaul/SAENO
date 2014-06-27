@@ -70,7 +70,8 @@ class VirtualBeads{
     void loadVbeads(std::string VBname);
     void findBeads(const stack3D& stackr);
     void loadUfound(std::string Uname, std::string Sname);
-    void loadGuess(FiniteBodyForces& M);
+    void loadGuessScattered(FiniteBodyForces&,std::string);
+    void loadGuess(FiniteBodyForces&,std::string);
     void loadScatteredRfound(std::string Rname);
     void computeInterpolationMatrix(const FiniteBodyForces& M);
     void allBeads(const FiniteBodyForces&);
@@ -347,11 +348,23 @@ void VirtualBeads::findBeads(const stack3D& stackr){
 
 }
 
-void VirtualBeads::loadGuess(FiniteBodyForces& M){
+void VirtualBeads::loadGuess(FiniteBodyForces& M, std::string ugname){
 
-    std::string indir=std::string(CFG["DATAIN"]);
+    M.loadConfiguration(ugname.c_str());
 
-    M.loadConfiguration((indir+std::string("/Uguess.dat")).c_str());
+    U_guess.clear();
+    U_guess.assign(M.R.size(),vec3D(0.0,0.0,0.0));
+
+    for(unsigned int i=0; i<M.R.size(); i++) U_guess[i]=M.U[i];
+
+    M.U.clear();
+    M.U.assign(M.N_c,vec3D(0.0,0.0,0.0));
+
+}
+
+void VirtualBeads::loadGuessScattered(FiniteBodyForces& M, std::string ugname){
+
+    M.loadConfiguration(ugname.c_str());
 
     M.computeConnections();
 
@@ -1080,13 +1093,16 @@ void VirtualBeads::findDisplacements(const stack3D& stack_r, const stack3D& stac
 
     for(t=0; t<tend; t++) if(vbead[t]){
 
-        std::cout<<"finding Displacements "<<(floor((t/(tend+0.0))*1000)+0.0)/10.0<<"% S="<<Stemp<<" n="<<n<<"      \r";
 
         if(int(CFG["VB_N"])==1){
+
+            std::cout<<"finding Displacements "<<(floor((t/(tend+0.0))*1000)+0.0)/10.0<<"% S="<<Stemp<<"        \r";
 
             R=(Trans*((M.R[t]))+scaledShift);
 
             Umean=Drift;
+
+            if(bool(CFG["INITIALGUESS"])) Umean+=U_guess[t];
 
             Umean=Trans*Umean;
 
@@ -1100,6 +1116,8 @@ void VirtualBeads::findDisplacements(const stack3D& stack_r, const stack3D& stac
             U_found[t]=U_new;
 
         }else{
+
+            std::cout<<"finding Displacements "<<(floor((t/(tend+0.0))*1000)+0.0)/10.0<<"% S="<<Stemp<<" n="<<n<<"      \r";
 
             Ud.clear();
             Sd.clear();

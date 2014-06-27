@@ -93,7 +93,7 @@ int main(int argc,char *argv[])
     }
 
     std::string outdir=std::string(CFG["DATAOUT"]);
-    std::string indir=std::string(CFG["DATAIN"]);
+    std::string indir=std::string(CFG["DATAIN"])+std::string("/");
 
     QDir dir(outdir.c_str());
     if (!dir.exists()) {
@@ -249,13 +249,14 @@ int main(int argc,char *argv[])
             else if(!bool(CFG["BOXMESH"])) B.loadVbeads((indir+std::string(CFG["VBEADS"])).c_str());
 
             if(bool(CFG["SCATTEREDRFOUND"])){
-                if(bool(CFG["INITIALGUESS"])) B.loadGuess(M);
+                if(bool(CFG["INITIALGUESS"])) B.loadGuessScattered(M,indir+std::string(CFG["UGUESS"]));
                 B.findDisplacementsScattered(stackr,stacka,float(CFG["VB_REGPARA"]));
                 B.storeRfound(outdir+std::string("/Rfound.dat"));
                 M.computePhi();
                 M.computeConnections();
                 B.computeInterpolationMatrix(M);
             }else{
+                if(bool(CFG["INITIALGUESS"])) B.loadGuess(M,indir+std::string(CFG["UGUESS"]));
                 B.findDisplacements(stackr,stacka,M,float(CFG["VB_REGPARA"]));
             }
             B.storeUfound( outdir+"/"+std::string(CFG["UFOUND"]),outdir+"/"+std::string(CFG["SFOUND"]));

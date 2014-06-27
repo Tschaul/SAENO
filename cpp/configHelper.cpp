@@ -130,8 +130,14 @@ void loadDefaults(std::map<std::string, Chameleon>& CFG){
     CFG["VOXELSIZEY"]=Chameleon(1.0);
     CFG["VOXELSIZEZ"]=Chameleon(1.0);
     CFG["JUMP"]=Chameleon(1);
+    CFG["ALLIGNSTACKS"]=Chameleon("1");
+    CFG["SAVEALLIGNEDSTACK"]=Chameleon("0");
+    CFG["DRIFT_STEP"]=Chameleon("2.0");
+    CFG["DRIFT_RANGE"]=Chameleon("30.0");
+
     //extractDeformation
-    CFG["VBEADS"]=Chameleon("vbeads.dat"); //remove
+    CFG["UGUESS"]=Chameleon("Uguess.dat");
+    CFG["VBEADS"]=Chameleon("vbeads.dat");
     CFG["SUBPIXEL"]=Chameleon("0.005");
     CFG["VB_MINMATCH"]=Chameleon("0.7");
     CFG["VB_N"]=Chameleon(1);
@@ -139,11 +145,6 @@ void loadDefaults(std::map<std::string, Chameleon>& CFG){
     CFG["VB_SY"]=Chameleon(12);
     CFG["VB_SZ"]=Chameleon(12);
     CFG["VB_REGPARA"]=Chameleon("0.01");
-    CFG["VB_REGPARAREF"]=Chameleon("0.5");
-    CFG["DRIFT_STEP"]=Chameleon("2.0");
-    CFG["DRIFT_RANGE"]=Chameleon("30.0");
-    CFG["ALLIGNSTACKS"]=Chameleon("1.0");
-    CFG["SAVEALLIGNEDSTACK"]=Chameleon("0.0");
 
     CFG["FM_RMAX"]=Chameleon("150e-6");
 
