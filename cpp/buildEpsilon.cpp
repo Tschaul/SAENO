@@ -183,7 +183,7 @@ void buildEpsilon3(std::vector<double>& epsilon, std::vector<double>& epsbar, st
 
             epsbarbar[i]+=(k1);
 
-            if(lambda>s1 && ds1!=0.0){
+            if(lambda>s1 && ds1>0.0){
 
                 epsbarbar[i]+=(k1)*(exp((lambda-s1)/ds1)-1.0);
 

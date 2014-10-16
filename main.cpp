@@ -58,6 +58,7 @@ std::string FloatToStr( float n ) {
 
 int main(int argc,char *argv[])
 {
+    QCoreApplication a(argc, argv);
 
     if(std::string(argv[1])=="-v"){
 
@@ -75,6 +76,7 @@ int main(int argc,char *argv[])
     results.clear();
     results["ERROR"]=Chameleon("");
 
+    //------ START OF MODULE loadParameters --------------------------------------///
     std::cout<<"LOAD PARAMETERS                  \n";
 
     loadDefaults(CFG);
@@ -106,6 +108,10 @@ int main(int argc,char *argv[])
 
     VirtualBeads B=VirtualBeads();
 
+    //------ END OF MODULE loadParameters --------------------------------------///
+
+
+    //------ START OF MODULE buildBeams --------------------------------------///
     std::cout<<"BUILD BEAMS                  \n";
 
     buildBeams(M.s,floor(sqrt(int(CFG["BEAMS"])*PI+0.5)));
@@ -122,7 +128,11 @@ int main(int argc,char *argv[])
 
     }
 
+    //------ END OF MODULE buildBeams --------------------------------------///
+
     if(bool(CFG["BOXMESH"])){
+
+        //------ START OF MODULE makeBoxmesh --------------------------------------///
 
         std::cout<<"MAKE BOXMESH                   \n";
 
@@ -130,12 +140,18 @@ int main(int argc,char *argv[])
 
         std::cout<<M.N_c<<" coords  \n";
 
+        //------ END OF MODULE makeBoxmesh --------------------------------------///
+
     }else{
+
+        //------ START OF MODULE loadMesh --------------------------------------///
 
         std::cout<<"LOAD MESH                  \n";
 
         M.loadMeshCoords( (indir+std::string(CFG["COORDS"])).c_str() );
         M.loadMeshTets( (indir+std::string(CFG["TETS"])).c_str() );
+
+        //------ End OF MODULE loadMesh --------------------------------------///
 
     }
 
@@ -145,14 +161,19 @@ int main(int argc,char *argv[])
 
     if(std::string(CFG["MODE"])=="relaxation"){
 
+        //------ START OF MODULE loadBoundaryConditions --------------------------------------///
+        std::cout<<"LOAD BOUNDARY CONDITIONS                  \n";
+
         M.computePhi();
         M.computeConnections();
-
-        std::cout<<"LOAD BOUNDARY CONDITIONS                  \n";
 
         M.loadBoundaryConditions( (indir+std::string(CFG["BCOND"])).c_str() );
         M.loadConfiguration( (indir+std::string(CFG["ICONF"])).c_str() );
 
+
+        //------ END OF MODULE loadBoundaryConditions --------------------------------------///
+
+        //------ START OF MODULE solveBoundaryConditions --------------------------------------///
         std::cout<<"SOLVE BOUNDARY CONDITIONS                  \n";
 
         M.updateGloFAndK();
@@ -162,6 +183,9 @@ int main(int argc,char *argv[])
         CFG["TIME_RELAXATION"]=( (finish - start)/CLOCKS_PER_SEC );
         CFG["TIME_TOTALTIME"]=( (finish - starttotal)/CLOCKS_PER_SEC );
 
+        //------ END OF MODULE solveBoundaryConditions --------------------------------------///
+
+        //------ START OF MODULE saveResults --------------------------------------///
         std::cout<<"SAVE RESULTS                  \n";
 
         M.storeF((outdir+"/F.dat").c_str());
@@ -169,15 +193,22 @@ int main(int argc,char *argv[])
         M.storeEandV((outdir+"/RR.dat").c_str(),(outdir+"/EV.dat").c_str());
         saveConfigFile(CFG,(outdir+"/config.txt").c_str());
 
+        //------ END OF MODULE saveResults --------------------------------------///
+
     }else{
 
         if(bool(CFG["FIBERPATTERNMATCHING"])){
 
+
+            //------ START OF MODULE loadStacks --------------------------------------///
             std::cout<<"LOAD STACKS                  \n";
 
             stack3D stacka;
 
-            readStack(stacka,std::string(CFG["STACKA"]),int(CFG["ZFROM"]),int(CFG["ZTO"]),int(CFG["JUMP"]));
+            //std::cout<<"STACKA = "<<std::string(CFG["STACKA"])<<"\n";
+
+            if(bool(CFG["USESPRINTF"])) readStackSprintf(stacka,std::string(CFG["STACKA"]),int(CFG["ZFROM"]),int(CFG["ZTO"]),int(CFG["JUMP"]));
+            else readStackWildcard(stacka,std::string(CFG["STACKA"]),int(CFG["JUMP"]));
 
             //saveStack(stacka,outdir+std::string("/stacka"));
 
@@ -195,7 +226,9 @@ int main(int argc,char *argv[])
 
             if(bool(CFG["ALLIGNSTACKS"])){
 
-                readStack(stackro,std::string(CFG["STACKR"]),int(CFG["ZFROM"]),int(CFG["ZTO"]),int(CFG["JUMP"]));
+                if(bool(CFG["USESPRINTF"])) readStackSprintf(stackro,std::string(CFG["STACKR"]),int(CFG["ZFROM"]),int(CFG["ZTO"]),int(CFG["JUMP"]));
+                else readStackWildcard(stackro,std::string(CFG["STACKR"]),int(CFG["JUMP"]));
+
                 stackr=stack3D();
 
                 B.Drift=B.findDriftCoarse(stackro,stacka,float(CFG["DRIFT_RANGE"]),float(CFG["DRIFT_STEP"]));
@@ -222,11 +255,19 @@ int main(int argc,char *argv[])
                 stackro.clear();
 
 
-            }else readStack(stackr,std::string(CFG["STACKR"]),int(CFG["ZFROM"]),int(CFG["ZTO"]),int(CFG["JUMP"]));
+            }else{
+
+                if(bool(CFG["USESPRINTF"])) readStackSprintf(stackr,std::string(CFG["STACKR"]),int(CFG["ZFROM"]),int(CFG["ZTO"]),int(CFG["JUMP"]));
+                else readStackWildcard(stackr,std::string(CFG["STACKR"]),int(CFG["JUMP"]));
+
+            }
 
 
             //saveStack(stackr,outdir+std::string("/stackr"));
 
+            //------ End OF MODULE loadStacks --------------------------------------///
+
+            //------ START OF MODULE extractDeformations --------------------------------------///
             std::cout<<"EXTRACT DEFORMATIONS                  \n";
 
             //B.computeConconnections(M);
@@ -271,8 +312,11 @@ int main(int argc,char *argv[])
             CFG["TIME_FIBERPATTERNMATCHING"]=( (finish - start)/CLOCKS_PER_SEC );
             start = clock();
 
+            //------ END OF MODULE extractDeformations --------------------------------------///
+
         }else{
 
+            //------ START OF MODULE loadDeformations --------------------------------------///
             std::cout<<"LOAD DEFORMATIONS                  \n";
 
             B.Drift=vec3D(0.0,0.0,0);
@@ -285,12 +329,15 @@ int main(int argc,char *argv[])
                 B.computeInterpolationMatrix(M);
             }
 
-            if(std::string(CFG["MODE"])=="computation") M.loadConfiguration((indir+std::string("/U.dat")).c_str());
+            if(std::string(CFG["MODE"])=="computation") M.loadConfiguration((indir+std::string(CFG["UFOUND"])).c_str());
+
+            //------ END OF MODULE loadDeformations --------------------------------------///
 
         }
 
         if(std::string(CFG["MODE"])=="regularization"){
 
+            //------ START OF MODULE regularizeDeformations --------------------------------------///
             std::cout<<"REGULARIZE DEFORMATIONS                  \n";
 
             bool doreg=true;
@@ -373,10 +420,14 @@ int main(int argc,char *argv[])
 
             }
 
+
+            //------ END OF MODULE regularizeDeformations --------------------------------------///
+
         }else{
 
             if(std::string(CFG["MODE"])=="computation"){
 
+                //------ START OF MODULE computeResults --------------------------------------///
                 std::cout<<"COMPUTE RESULTS                \n";
 
                 if(bool(CFG["BOXMESH"])){
@@ -396,12 +447,15 @@ int main(int argc,char *argv[])
 
                 M.updateGloFAndK();
 
+                //------ END OF MODULE computeResults --------------------------------------///
+
             }
 
         }
 
         if(std::string(CFG["MODE"])!="none"){
 
+            //------ START OF MODULE saveResults --------------------------------------///
             std::cout<<"SAVE RESULTS                  \n";
 
             //M.prolongToGrain(1);
@@ -424,6 +478,8 @@ int main(int argc,char *argv[])
 
             saveConfigFile(CFG,(outdir+"/config.txt").c_str());
             saveConfigFile(results,(outdir+"/results.txt").c_str());
+
+            //------ END OF MODULE saveResults --------------------------------------///
 
         }
 

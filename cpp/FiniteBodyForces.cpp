@@ -112,22 +112,15 @@ void FiniteBodyForces::makeBoxmesh(){
     var.assign(N_c,true);
     U.assign(N_c,vec3D(0.0,0.0,0.0));
 
-    shrinkToSubmesh(1);
-
-}
-
-void FiniteBodyForces::shrinkToSubmesh(int grain){
-
-    int nx=int(CFG["BM_N"]);
     var.assign(N_c,false);
 
     //int ny=nx;
     //int nz=nx;
 
-    makeBoxmeshTets(nx, T, grain);
+    makeBoxmeshTets(nx, T, currentgrain);
     N_T=T.size();
 
-    setActiveFields(nx,grain,var,true);
+    setActiveFields(nx,currentgrain,var,true);
 
     Phi.assign(N_T,
         std::vector< std::vector<double> >(4,
@@ -138,7 +131,14 @@ void FiniteBodyForces::shrinkToSubmesh(int grain){
     V.assign(N_T,0.0);
     E.assign(N_T,0.0);
 
-    currentgrain=grain;
+
+}
+
+/*
+
+void FiniteBodyForces::shrinkToSubmesh(int grain){
+
+
 
 }
 
@@ -172,6 +172,7 @@ void FiniteBodyForces::prolongToGrain(int grain){
 
 }
 
+
 void FiniteBodyForces::restrictToGrain(int grain, bool interpolate=true){
 
     int nx=int(CFG["BM_N"]);
@@ -187,6 +188,8 @@ void FiniteBodyForces::restrictToGrain(int grain, bool interpolate=true){
     }
 
 }
+
+*/
 
 void FiniteBodyForces::loadMeshCoords(std::string fcoordsname){
 
@@ -1030,7 +1033,68 @@ void FiniteBodyForces::mulKall(std::vector<double>& u, std::vector<double>& f){
 
 }
 
+
 void FiniteBodyForces::computeStiffening(config& results){
+
+    std::vector<double> uu, Ku;
+
+    uu.assign(3*N_c,0.0);
+    Ku.assign(3*N_c,0.0);
+
+    int i=0;
+
+    for(i=0; i<N_c; i++) {
+
+        uu[3*i]=U[i].x;
+        uu[3*i+1]=U[i].y;
+        uu[3*i+2]=U[i].z;
+
+    }
+
+    mulK(uu,Ku);
+
+    double kWithStiffening=imul(uu,Ku);
+
+
+
+    //double k0=0.9;
+    double k1=double(CFG["K_0"]);
+
+
+    double ds0=double(CFG["D_0"]);
+
+
+    buildEpsilon3(epsilon,epsbar,epsbarbar,k1,ds0,0,0);
+
+
+
+    updateGloFAndK();
+
+    uu.assign(3*N_c,0.0);
+    Ku.assign(3*N_c,0.0);
+
+    for(i=0; i<N_c; i++) {
+
+        uu[3*i]=U[i].x;
+        uu[3*i+1]=U[i].y;
+        uu[3*i+2]=U[i].z;
+
+    }
+
+    mulK(uu,Ku);
+
+    double kWithoutStiffening=imul(uu,Ku);
+
+
+    results["STIFFENING"]=kWithStiffening/kWithoutStiffening;
+
+    computeEpsilon();
+
+}
+
+/*
+
+void FiniteBodyForces::computeStiffening_old(config& results){
 
     std::vector<double> uu, Ku;
 
@@ -1105,6 +1169,8 @@ void FiniteBodyForces::computeStiffening(config& results){
     results["STIFFENING"]=Energy/D;
 
 }
+
+*/
 
 void FiniteBodyForces::computeForceMoments(config& results){
 

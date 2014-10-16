@@ -36,7 +36,8 @@ void loadConfigFile(config& CFG, std::string const& filename, config& results) {
     if (! line.length()) continue;
 
     if (line[0] == '#') continue;
-    if (line[0] == ';') continue;
+
+    line=line.substr(0,line.find('#'));
 
     posEqual=line.find('=');
     name  = trim(line.substr(0,posEqual));
@@ -68,9 +69,9 @@ void loadDefaults(std::map<std::string, Chameleon>& CFG){
     CFG["CONFIG"]=Chameleon("");
 
     //Meta
-    CFG["MODE"]=Chameleon("computation"); //values: computation , regularization , relaxation
+    CFG["MODE"]=Chameleon("regularization"); //values: computation , regularization , relaxation
     CFG["BOXMESH"]=Chameleon(1);
-    CFG["FIBERPATTERNMATCHING"]=Chameleon(0);
+    CFG["FIBERPATTERNMATCHING"]=Chameleon(1);
 
     //buildBeams
     CFG["BEAMS"]=Chameleon(300);
@@ -126,6 +127,7 @@ void loadDefaults(std::map<std::string, Chameleon>& CFG){
     CFG["STACKR"]=Chameleon("");
     CFG["ZFROM"]=Chameleon("");
     CFG["ZTO"]=Chameleon("");
+    CFG["USESPRINTF"]=Chameleon(0);
     CFG["VOXELSIZEX"]=Chameleon(1.0);
     CFG["VOXELSIZEY"]=Chameleon(1.0);
     CFG["VOXELSIZEZ"]=Chameleon(1.0);

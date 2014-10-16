@@ -1,3 +1,8 @@
+#include <QRegExp>
+#include <QStringList>
+#include <QDir>
+#include <QString>
+
 extern config CFG;
 
 
@@ -229,7 +234,6 @@ double crosscorrelateSections(const substack& substackr,const substack& substack
 
 }
 
-
 substack getSubstack(const stack3D& stack1, vec3D r){
 
     int sgX=int(CFG["VB_SX"]);
@@ -339,7 +343,6 @@ substack getSubstack(const stack3D& stack1, vec3D r){
 
 }
 
-
 double crosscorrelateSections(const substack& substackr,const stack3D& stack2, vec3D r){
 
     substack substacka=getSubstack(stack2,r);
@@ -372,7 +375,6 @@ substack operator+= (substack substack1, const substack substack2){
     return substack1;
 
 }
-
 
 vec3D findLocalDisplacement(const substack substackr ,const stack3D& stacka, vec3D R, vec3D Ustart, DRec& Srec, double lambda){
 
@@ -993,17 +995,26 @@ void allignStacks(const stack3D& stackr, const stack3D& stackao, stack3D& stacka
         double minS=1.0e20;
         int i=0;
 
-        for(int z2=zoptold-r; z2<zoptold+r+1; z2++) if(z2>=0 && z2<sZ) for(int dx=dxoptold-ddx; dx<(dxoptold+ddx+1); dx++) for(int dy=dyptold-ddy; dy<(dyptold+ddy+1); dy++){
+        for(int z2=zoptold-r; z2<zoptold+r+1; z2++){
 
-            i++;
-            Stemp=correlateImagesFromStacks(stackr,stackao,z,z2,dx,dy,meanr,meanao)/(2621440.0);
-            S.push_back(Stemp);
-            dx_S.push_back(dx);
-            dy_S.push_back(dy);
-            z2_S.push_back(z2);
+            for(int dx=dxoptold-ddx; dx<(dxoptold+ddx+1); dx++) for(int dy=dyptold-ddy; dy<(dyptold+ddy+1); dy++){
+
+                int zz2=z2;
+
+                if(zz2<0) zz2=0;
+
+                if(zz2>sZ-1) zz2=sZ-1;
+
+                i++;
+                Stemp=correlateImagesFromStacks(stackr,stackao,z,zz2,dx,dy,meanr,meanao)/(2621440.0);
+                S.push_back(Stemp);
+                dx_S.push_back(dx);
+                dy_S.push_back(dy);
+                z2_S.push_back(z2);
 
 
-            //std::cout<<Stemp<<" "<<dx<<" "<<dy<<" "<<z2<<"    \n";
+                //std::cout<<Stemp<<" "<<dx<<" "<<dy<<" "<<z2<<"    \n";
+            }
 
         }
 
@@ -1371,7 +1382,91 @@ std::string renderFilename(std::string fnamebase, int z){
 
 }
 
-void readStack(stack3D& stack, std::string fnamebase, int zfrom, int zto, int jump=1){
+void readStackWildcard(stack3D& stack, std::string fstr, int jump=1){
+
+
+    std::cout<<"fstr = "<<fstr<<"\n\n";
+
+    QString fullstring=QString::fromStdString(fstr);
+
+    fullstring=fullstring.replace("#","*");
+
+    QRegExp rx("(\\\\|\\/)");
+
+    QStringList parts = fullstring.split(rx);
+    QString filename = parts.at(parts.size()-1);
+
+    QString dirstring=fullstring.left(fullstring.length()-filename.length());
+
+    std::cout<<"fstr was split: "<<dirstring.toStdString()<<" ---- "<<filename.toStdString()<<"\n\n";
+
+    QDir dir=QDir(dirstring);
+
+    QStringList filters;
+
+    if(filename.length()>0) filters<<filename;
+
+    QStringList entryList=dir.entryList(filters);
+
+    QImage image;
+    image.load(dirstring + entryList.first());
+
+    int sX=image.width();
+    int sY=image.height();
+    int sZ=(entryList.length())/jump;
+
+    std::cout<<"sizes wil be "<<sX<<"  "<<sY<<" "<<sZ<<"    \n";
+
+    stack.assign(sX,
+        std::vector< std::vector< unsigned char > >(sY,
+            std::vector< unsigned char >(sZ, 0 )
+        )
+    );
+
+    std::vector<bool> failed;
+    failed.assign(sZ,false);
+
+    for(int z=0; z<sZ; z++){
+
+        std::cout<<"loading stack - "<<z<<"   \r";
+
+        image.load(dirstring + entryList.at(z*jump));
+        failed[z]=image.isNull();
+
+
+        if(!failed[z]){
+
+            for(int x=0; x<sX; x++) for(int y=0; y<sY; y++) stack[x][y][z]=(unsigned char)floor(qGray(image.pixel(x, y)));
+
+        }else{
+
+            std::cout<<"\n\nWARNING: The image "<<(dirstring + entryList.at(z*jump)).toStdString()<<" could not be loaded. It will be interpolated from the neighbors.\n";
+
+        }
+
+
+    }
+
+    // first image loading failed
+    if(failed[0]){
+        for(int x=0; x<sX; x++) for(int y=0; y<sY; y++) stack[x][y][0]=stack[x][y][1];
+    }
+
+    // last image loading failed
+    if(failed[sZ-1]){
+        for(int x=0; x<sX; x++) for(int y=0; y<sY; y++) stack[x][y][sZ-1]=stack[x][y][sZ-2];
+    }
+
+    // all other fails
+    for(int z=1; z<sZ-1; z++){
+        if(failed[z]){
+            for(int x=0; x<sX; x++) for(int y=0; y<sY; y++) stack[x][y][z]=(stack[x][y][z-1]+stack[x][y][z+1])/2;
+        }
+    }
+
+}
+
+void readStackSprintf(stack3D& stack, std::string fnamebase, int zfrom, int zto, int jump=1){
 
     //cimg::exception_mode(0);
 
@@ -1407,21 +1502,8 @@ void readStack(stack3D& stack, std::string fnamebase, int zfrom, int zto, int ju
 
         std::cout<<"loading stack - "<<z<<"   \r";
 
-
-        //image.load(fname.c_str());
-
-        //try { // Try reading image file
-            image.load(fname.c_str());
-            failed[z]=image.isNull();
-            /*
-        } catch( CImgException &e ) {
-            // Process Magick++ file open error
-            std::fprintf(stderr,"CImg Library Error: %s",e.what());
-            std::cout<<"\n\nWARNING: One of the images could not be loaded. It will be interpolated from the neighbors.\n";
-            //continue;
-            failed[z]=true;
-            // Try next image.
-        }*/
+        image.load(fname.c_str());
+        failed[z]=image.isNull();
 
         if(!failed[z]){
             for(int x=0; x<sX; x++) for(int y=0; y<sY; y++) stack[x][y][z]=(unsigned char)floor(qGray(image.pixel(x, y)));
