@@ -1385,7 +1385,7 @@ std::string renderFilename(std::string fnamebase, int z){
 void readStackWildcard(stack3D& stack, std::string fstr, int jump=1){
 
 
-    std::cout<<"fstr = "<<fstr<<"\n\n";
+    //std::cout<<"fstr = "<<fstr<<"\n\n";
 
     QString fullstring=QString::fromStdString(fstr);
 
@@ -1398,7 +1398,7 @@ void readStackWildcard(stack3D& stack, std::string fstr, int jump=1){
 
     QString dirstring=fullstring.left(fullstring.length()-filename.length());
 
-    std::cout<<"fstr was split: "<<dirstring.toStdString()<<" ---- "<<filename.toStdString()<<"\n\n";
+    //std::cout<<"fstr was split: "<<dirstring.toStdString()<<" ---- "<<filename.toStdString()<<"\n\n";
 
     QDir dir=QDir(dirstring);
 
