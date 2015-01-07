@@ -147,6 +147,8 @@ void loadDefaults(std::map<std::string, Chameleon>& CFG){
     CFG["VB_SY"]=Chameleon(12);
     CFG["VB_SZ"]=Chameleon(12);
     CFG["VB_REGPARA"]=Chameleon("0.01");
+    CFG["VB_REGPARAREF"]=Chameleon("0.1");
+    CFG["WEIGHTEDCROSSCORR"]=Chameleon(1);
 
     CFG["FM_RMAX"]=Chameleon("150e-6");
 

@@ -299,9 +299,10 @@ int main(int argc,char *argv[])
             }else{
                 if(bool(CFG["INITIALGUESS"])) B.loadGuess(M,indir+std::string(CFG["UGUESS"]));
                 B.findDisplacements(stackr,stacka,M,float(CFG["VB_REGPARA"]));
+                M.computeConnections();
+                B.refineDisplacements(stackr,stacka,M,float(CFG["VB_REGPARAREF"]));
             }
             B.storeUfound( outdir+"/"+std::string(CFG["UFOUND"]),outdir+"/"+std::string(CFG["SFOUND"]));
-            //B.refineDisplacements(stackr,stacka,M,float(CFG["VB_REGPARAREF"]));
             //B.storeUfound(outdir+"/Ufound1.dat",outdir+"/Sfound1.dat");
             M.storeRAndU(outdir+"/R.dat",outdir+"/U.dat");
 

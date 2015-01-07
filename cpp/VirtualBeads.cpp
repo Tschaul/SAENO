@@ -1091,6 +1091,47 @@ void VirtualBeads::findDisplacements(const stack3D& stack_r, const stack3D& stac
 
     double dx,dy,dz;
 
+    /* NEW CHRISTOPH */
+
+    int sgX=int(CFG["VB_SX"]);
+    int sgY=int(CFG["VB_SY"]);
+    int sgZ=int(CFG["VB_SZ"]);
+
+    std::vector< std::vector< std::vector<double> > > weight;
+
+    double sumweight=0.0;
+
+    weight.assign(sgX,
+        std::vector< std::vector< double > >(sgY,
+            std::vector< double >(sgZ, 0.0 )
+        )
+    );
+
+    for(int ii=0; ii<sgX; ii++) for(int jj=0; jj<sgY; jj++) for(int kk=0; kk<sgZ; kk++){
+
+        double xxx=(ii-sgX/2)*dX;
+        double yyy=(jj-sgY/2)*dY;
+        double zzz=(kk-sgZ/2)*dZ;
+
+        double width=sgX*dX*0.25;
+
+        weight[ii][jj][kk]=exp(-(xxx*xxx+yyy*yyy+zzz*zzz)/(2*width));
+        sumweight+=weight[ii][jj][kk];
+
+    }
+
+    sumweight/=sgX*sgY*sgZ;
+
+    for(int ii=0; ii<sgX; ii++) for(int jj=0; jj<sgY; jj++) for(int kk=0; kk<sgZ; kk++) weight[ii][jj][kk]/=sumweight;
+
+    //sumweight=0.0;
+
+    //for(int ii=0; ii<sgX; ii++) for(int jj=0; jj<sgY; jj++) for(int kk=0; kk<sgZ; kk++) sumweight+=weight[ii][jj][kk];
+
+    //std::cout<<"sumweight = "<<sumweight<<"\n\n";
+
+    /* END NEW CHRISTOPH */
+
     for(t=0; t<tend; t++) if(vbead[t]){
 
 
@@ -1107,6 +1148,10 @@ void VirtualBeads::findDisplacements(const stack3D& stack_r, const stack3D& stac
             Umean=Trans*Umean;
 
             substack substackr=getSubstack(stack_r,R);
+
+            //NEW CHRSITOPH
+            for(int ii=0; ii<sgX; ii++) for(int jj=0; jj<sgY; jj++) for(int kk=0; kk<sgZ; kk++) substackr[ii][jj][kk]*=weight[ii][jj][kk];
+
             U_new=findLocalDisplacement(substackr,stack_a,R,Umean,Srec,lambda);
             S_0[t]=Srec.data.back();
             Stemp=Srec.data.back();
@@ -1294,7 +1339,7 @@ void VirtualBeads::refineDisplacements(const stack3D& stack_r, const stack3D& st
 
     BubbleSort_IVEC_using_associated_dVals(indices,Svalues);
 
-    int Nrenew=floor(vbeadcount/4);
+    int Nrenew=floor(vbeadcount);
 
     std::list<size_t>::iterator it;
 
@@ -1302,9 +1347,11 @@ void VirtualBeads::refineDisplacements(const stack3D& stack_r, const stack3D& st
 
     vec3D Umean,U_new,R;
 
+    double Stemp=0.0;
+
     for(int i=0; i<Nrenew; i++){
 
-        std::cout<<"refining displacements: "<<(floor((i/(Nrenew+0.0))*1000)+0.0)/10.0<<"%     S="<<Svalues[i]<<"            \r";
+        std::cout<<"refining displacements: "<<(floor((i/(Nrenew+0.0))*1000)+0.0)/10.0<<"%     S="<<Stemp<<"            \r";
 
         c=indices[i];
         cccount=0;
@@ -1343,6 +1390,9 @@ void VirtualBeads::refineDisplacements(const stack3D& stack_r, const stack3D& st
             U_new=Transinv*U_new*0.5;
 
             U_found[c]=U_new;
+
+            Stemp=S_0[c];
+
 
         }
 
