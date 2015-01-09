@@ -79,6 +79,8 @@ class VirtualBeads{
     void computeConconnections(FiniteBodyForces& M);
     void computeConconnections_Laplace(FiniteBodyForces& M);
 
+    void substractMedianDisplacements();
+
     void mulA(std::vector<double>& u, std::vector<double>& f, const FiniteBodyForces& M);
     double solve_CG(FiniteBodyForces& M);
     vec3D relax(FiniteBodyForces& M);
@@ -842,6 +844,57 @@ void VirtualBeads::computeConconnections_Laplace(FiniteBodyForces& M){
 
     for(c1=0;c1<M.N_c;c1++) conconnections[c1].sort();
 
+}
+
+void VirtualBeads::substractMedianDisplacements(){
+
+    std::vector<double> Ux;
+    std::vector<double> Uy;
+    std::vector<double> Uz;
+
+    for(auto U: U_found){
+
+        if(abs(U)>0.01*double(CFG["VOXELSIZEX"])){
+
+            Ux.push_back(U.x);
+            Uy.push_back(U.y);
+            Uz.push_back(U.z);
+        }
+
+    }
+
+    std::sort(Ux.begin(),Ux.end());
+    std::sort(Uy.begin(),Uy.end());
+    std::sort(Uz.begin(),Uz.end());
+
+    double Uxmedian=Ux[Ux.size()/2];
+    double Uymedian=Uy[Uy.size()/2];
+    double Uzmedian=Uz[Uz.size()/2];
+
+    std::cout<<"Median displacement calculated to ( "<<Uxmedian<<" , "<<Uymedian<<" , "<<Uzmedian<<" )\n";
+
+    for(int i=0; i<U_found.size(); i++){
+
+        if(abs(U_found[i])>0.01*double(CFG["VOXELSIZEX"])){
+
+            U_found[i].x-=Uxmedian;
+            U_found[i].y-=Uymedian;
+            U_found[i].z-=Uzmedian;
+
+        }
+
+    }
+
+//    for(auto U: U_found){
+
+//        if(abs(U)>0.01*double(CFG["VOXELSIZEX"])){
+
+//            U.x-=Uxmedian;
+//            U.y-=Uymedian;
+//            U.z-=Uzmedian;
+//        }
+
+//    }
 }
 
 vec3D VirtualBeads::findDriftCoarse(const stack3D& stackr, const stack3D& stacka, double range, double step){
