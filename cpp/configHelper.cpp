@@ -104,7 +104,6 @@ void loadDefaults(std::map<std::string, Chameleon>& CFG){
     CFG["REL_RELREC"]=Chameleon("relrec.dat"); //remove
 
     //loadDeformations
-    CFG["SCATTEREDRFOUND"]=Chameleon(0);
     CFG["UFOUND"]=Chameleon("Ufound.dat"); //remove
     CFG["SFOUND"]=Chameleon("Sfound.dat"); //remove
     CFG["RFOUND"]=Chameleon("Rfound.dat"); //remove

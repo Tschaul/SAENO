@@ -68,12 +68,8 @@ class VirtualBeads{
     void correctHorizontalDrift(FiniteBodyForces& M);
 
     void loadVbeads(std::string VBname);
-    void findBeads(const stack3D& stackr);
     void loadUfound(std::string Uname, std::string Sname);
-    void loadGuessScattered(FiniteBodyForces&,std::string);
     void loadGuess(FiniteBodyForces&,std::string);
-    void loadScatteredRfound(std::string Rname);
-    void computeInterpolationMatrix(const FiniteBodyForces& M);
     void allBeads(const FiniteBodyForces&);
     void computeOutOfStack(const FiniteBodyForces&);
     void computeConconnections(FiniteBodyForces& M);
@@ -88,7 +84,6 @@ class VirtualBeads{
     double testDrift(const stack3D& stack1, const stack3D& stack2, vec3D D);
 
     void findDisplacements(const stack3D& stack_r, const stack3D& stack_a, FiniteBodyForces& M,double lambda);
-    void findDisplacementsScattered(const stack3D& stack_r, const stack3D& stack_a, double lambda);
     void refineDisplacements(const stack3D& stack_r, const stack3D& stack_a, FiniteBodyForces& M, double lambda);
     vec3D findDrift(const stack3D& stack1, const stack3D& stack2);
     vec3D findDriftCoarse(const stack3D& stack1, const stack3D& stack2, double range, double step);
@@ -108,7 +103,6 @@ class VirtualBeads{
 
 };
 
-
 VirtualBeads::VirtualBeads(){};
 
 VirtualBeads::VirtualBeads(int ssX, int ssY, int ssZ, double ddX, double ddY, double ddZ){
@@ -119,64 +113,6 @@ VirtualBeads::VirtualBeads(int ssX, int ssY, int ssZ, double ddX, double ddY, do
     dX=ddX;
     dY=ddY;
     dZ=ddZ;
-
-}
-
-void VirtualBeads::correctHorizontalDrift(FiniteBodyForces& M){
-
-
-    std::vector<int> indicesx;
-    std::vector<int> indicesy;
-    std::vector<int> indicesz;
-    std::vector<double> valuesx;
-    std::vector<double> valuesy;
-    std::vector<double> valuesz;
-
-    vec3D Umean=vec3D();
-
-    int c,vbeadcount=0;
-
-    for(c=0; c<M.N_c; c++) if(vbead[c]){
-
-        if(norm(U_found[c])!=0){
-
-            indicesx.push_back(c);
-            indicesy.push_back(c);
-            indicesz.push_back(c);
-            valuesx.push_back(U_found[c].x);
-            valuesy.push_back(U_found[c].y);
-            valuesz.push_back(U_found[c].z);
-
-            vbeadcount++;
-
-        }
-
-    }
-
-
-    if(vbeadcount>0){
-
-        BubbleSort_IVEC_using_associated_dVals(indicesx,valuesx);
-        BubbleSort_IVEC_using_associated_dVals(indicesy,valuesy);
-        BubbleSort_IVEC_using_associated_dVals(indicesz,valuesz);
-
-        double Umx=valuesx[floor(vbeadcount/2)];
-        double Umy=valuesy[floor(vbeadcount/2)];
-        double Umz=valuesz[floor(vbeadcount/2)];
-
-        for(c=0; c<M.N_c; c++) if(vbead[c]){
-
-            U_found[c]-=vec3D(Umx,Umy,Umz);
-
-        }
-
-    }
-
-    for(c=0; c<M.N_c; c++) if(vbead[c]){
-
-        U_found[c]-=Umean;
-
-    }
 
 }
 
@@ -247,109 +183,6 @@ void VirtualBeads::loadVbeads(std::string VBname){
 
 }
 
-void VirtualBeads::findBeads(const stack3D& stackr){
-
-    std::multiset<std::tuple<unsigned char,int,int,int>> vlist=findLocalMinima(stackr,floor(int(CFG["VB_SX"])*0.5),floor(int(CFG["VB_SY"])*0.5),floor(int(CFG["VB_SZ"])*0.5),int(CFG["VB_COUNT"]));
-
-    DRec3D mrec=DRec3D();
-
-    int i,j,k;
-
-    mat3D Scale=mat3D(1.0/dX,0.0,0.0,0.0,1.0/dY,0.0,0.0,0.0,1.0/dZ);
-
-    vec3D scaledShift=vec3D(sX/2,sY/2,sZ/2);
-
-    mat3D Trans=Scale;
-
-    mat3D Transinv=Trans.inv();
-
-    int sgX=int(CFG["VB_SX"]);
-    int sgY=int(CFG["VB_SY"]);
-    int sgZ=int(CFG["VB_SZ"]);
-
-    std::vector< std::vector< std::vector<double> > > substack;
-
-    substack.assign(sgX,
-        std::vector< std::vector< double > >(sgY,
-            std::vector< double >(sgZ, 0.0 )
-        )
-    );
-
-    for(auto n : vlist){
-
-        i=std::get<1>(n);
-        j=std::get<2>(n);
-        k=std::get<3>(n);
-
-        mrec.record(i,j,k);
-
-        std::vector< std::vector< std::vector<double> > > substacktemp=getSubstack(stackr,vec3D(i,j,k));
-
-        for(auto ii=0; ii<sgX; ii++) for(auto jj=0; jj<sgY; jj++) for(auto kk=0; kk<sgZ; kk++){
-
-            substack[ii][jj][kk]+=substacktemp[ii][jj][kk];
-
-
-        }
-
-    }
-
-    std::string outdir=std::string(CFG["DATAOUT"]);
-    std::string mrecname=outdir+std::string("/")+std::string(CFG["VB_MREC"]);
-    mrec.store(mrecname.c_str());
-
-
-    DRec ssrec=DRec();
-
-    double var=0.0;
-
-    for(auto ii=0; ii<sgX; ii++) for(auto jj=0; jj<sgY; jj++) for(auto kk=0; kk<sgZ; kk++){
-
-        var+=substack[ii][jj][kk]*substack[ii][jj][kk];
-
-
-    }
-
-    var=sqrt(var);
-
-    for(auto ii=0; ii<sgX; ii++) for(auto jj=0; jj<sgY; jj++) for(auto kk=0; kk<sgZ; kk++){
-
-        substack[ii][jj][kk]=substack[ii][jj][kk]/var;
-
-        ssrec.record(substack[ii][jj][kk]);
-
-    }
-
-    std::string ssrecname=outdir+std::string("/ssrec.dat");
-    ssrec.store(ssrecname.c_str());
-
-    DRec Srec=DRec();
-
-    R_found.clear();
-
-    int nend=vlist.size();
-
-    int count=0;
-
-    for(auto n : vlist){
-
-        i=std::get<1>(n);
-        j=std::get<2>(n);
-        k=std::get<3>(n);
-
-        vec3D Rf=vec3D(i,j,k)+findLocalDisplacement(substack,stackr,vec3D(i,j,k),vec3D(0.0,0.0,0.0),Srec,double(CFG["VB_REGPARA"]));
-
-        if(Srec.data.back()>double(CFG["VB_MINMATCH"])) R_found.push_back( Transinv*(Rf-scaledShift) );
-
-        std::cout<<"examining candidates "<<(floor((count/(nend+0.0))*1000)+0.0)/10.0<<"% S="<<Srec.data.back()<<"      \r";
-
-        count++;
-
-    }
-
-
-}
-
 void VirtualBeads::loadGuess(FiniteBodyForces& M, std::string ugname){
 
     M.loadConfiguration(ugname.c_str());
@@ -358,30 +191,6 @@ void VirtualBeads::loadGuess(FiniteBodyForces& M, std::string ugname){
     U_guess.assign(M.R.size(),vec3D(0.0,0.0,0.0));
 
     for(unsigned int i=0; i<M.R.size(); i++) U_guess[i]=M.U[i];
-
-    M.U.clear();
-    M.U.assign(M.N_c,vec3D(0.0,0.0,0.0));
-
-}
-
-void VirtualBeads::loadGuessScattered(FiniteBodyForces& M, std::string ugname){
-
-    M.loadConfiguration(ugname.c_str());
-
-    M.computeConnections();
-
-    computeInterpolationMatrix(M);
-
-    U_guess.clear();
-    U_guess.assign(R_found.size(),vec3D(0.0,0.0,0.0));
-
-    for(unsigned int i=0; i<R_found.size(); i++) for(auto itIT=I[i].begin(); itIT!=I[i].end(); itIT++) {
-
-        //auto j=itIT->first;
-
-        U_guess[i] += M.U[itIT->first] * itIT->second;
-
-    }
 
     M.U.clear();
     M.U.assign(M.N_c,vec3D(0.0,0.0,0.0));
@@ -514,238 +323,6 @@ void VirtualBeads::loadUfound(std::string Uname, std::string Sname){
 
 }
 
-void VirtualBeads::loadScatteredRfound(std::string Rname){
-
-    DRec3D Rrec=DRec3D();
-
-    Rrec.read(Rname.c_str());
-
-    int i=0;
-    int iend=Rrec.data.size();
-
-    //int outcount=0;
-
-    R_found.resize(iend);
-
-    for(i=0; i<iend; i++){
-
-        R_found[i]=Rrec.data[i];
-
-    }
-
-    Rrec.data.clear();
-
-}
-
-void VirtualBeads::computeInterpolationMatrix(const FiniteBodyForces& M){
-
-    int i=0;
-    int iend=R_found.size();
-
-    I.resize(iend);
-    for(int i=0; i<(iend); i++) I[i].clear();
-
-    Itrans.resize(M.N_c);
-    for(int i=0; i<(M.N_c); i++) Itrans[i].clear();
-
-
-    int foundcount=0;
-
-
-    for(i=0; i<iend; i++){
-
-        if( (i%10)==0 ) std::cout<<"localizing scattered input in mesh "<<(floor((i/(iend+0.0))*1000)+0.0)/10.0<<"%                \r";
-
-        //std::cout<<"Rf=("<<R_found[i].x<<","<<R_found[i].y<<","<<R_found[i].z<<") \n";
-
-        for(int t=0; t<M.N_T; t++){
-
-            //std::cout<<"check  check               \n";
-
-//            vec3D a=M.R[M.T[t][0]];
-//            vec3D b=M.R[M.T[t][1]];
-//            vec3D c=M.R[M.T[t][2]];
-//            vec3D d=M.R[M.T[t][3]];
-
-
-            mat3D B=mat3D(
-
-                M.R[M.T[t][1]].x-M.R[M.T[t][0]].x, M.R[M.T[t][2]].x-M.R[M.T[t][0]].x, M.R[M.T[t][3]].x-M.R[M.T[t][0]].x,
-                M.R[M.T[t][1]].y-M.R[M.T[t][0]].y, M.R[M.T[t][2]].y-M.R[M.T[t][0]].y, M.R[M.T[t][3]].y-M.R[M.T[t][0]].y,
-                M.R[M.T[t][1]].z-M.R[M.T[t][0]].z, M.R[M.T[t][2]].z-M.R[M.T[t][0]].z, M.R[M.T[t][3]].z-M.R[M.T[t][0]].z
-
-            );
-
-
-            //std::cout<<B.det()<<"       \n";
-
-//            B=mat3D(
-//                R[T[t][1]].x-R[T[t][0]].x, R[T[t][1]].y-R[T[t][0]].y, R[T[t][1]].z-R[T[t][0]].z,
-//                R[T[t][2]].x-R[T[t][0]].x, R[T[t][2]].y-R[T[t][0]].y, R[T[t][2]].z-R[T[t][0]].z,
-//                R[T[t][3]].x-R[T[t][0]].x, R[T[t][3]].y-R[T[t][0]].y, R[T[t][3]].z-R[T[t][0]].z
-//            );
-
-            if(B.det()>0){
-
-                vec3D q=B.inv()*(R_found[i]- M.R[M.T[t][0]]);
-
-                /*
-
-                if(abs((R_found[i]- M.R[M.T[t][0]]))<double(CFG["BM_GRAIN"])){
-
-
-
-                    std::cout<<"q=("<<q.x<<","<<q.y<<","<<q.z<<") \n"
-                              <<"Ra=("<<M.R[M.T[t][0]].x<<","<<M.R[M.T[t][0]].y<<","<<M.R[M.T[t][0]].z<<") \n"
-                             <<"Rb=("<<M.R[M.T[t][1]].x<<","<<M.R[M.T[t][1]].y<<","<<M.R[M.T[t][1]].z<<") \n"
-                            <<"Rc=("<<M.R[M.T[t][2]].x<<","<<M.R[M.T[t][2]].y<<","<<M.R[M.T[t][2]].z<<") \n"
-                            <<"Rd=("<<M.R[M.T[t][3]].x<<","<<M.R[M.T[t][3]].y<<","<<M.R[M.T[t][3]].z<<") \n\n";
-
-
-                }*/
-
-                if( q.x>0.0 && q.y>0.0 && q.z>0.0 && (q.x+q.y+q.z)<1.0 ){
-
-                    //auto Xi=M.Phi[t]*(R_found[i] - M.R[TT[0]]);
-                    //Xi[0]+=1;
-
-                    //int debug=M.T[t][0];
-                    //double debug2=1.0-(q.x+q.y+q.z);
-
-                    //if(i==230) std::cout<<"i="<<i<<" \n"
-                    //           <<"q=("<<q.x<<","<<q.y<<","<<q.z<<") \n"
-                    //           <<"T=("<<M.T[t][0]<<","<<M.T[t][1]<<","<<M.T[t][2]<<","<<M.T[t][3]<<","<<")\n\n";
-
-                    I[i][M.T[t][0]]+=1.0-(q.x+q.y+q.z);
-                    I[i][M.T[t][1]]+=q.x;
-                    I[i][M.T[t][2]]+=q.y;
-                    I[i][M.T[t][3]]+=q.z;
-
-                    Itrans[M.T[t][0]][i]+=1.0-(q.x+q.y+q.z);
-                    Itrans[M.T[t][1]][i]+=q.x;
-                    Itrans[M.T[t][2]][i]+=q.y;
-                    Itrans[M.T[t][3]][i]+=q.z;
-
-                    foundcount++;
-
-                    //std::cout<<"found a bead!   \n";
-
-                    break;
-
-                }
-
-            }
-
-
-        }
-
-
-
-    }
-
-    if(foundcount<iend) std::cout<<"\nWARNING: "<<iend-foundcount<<" of "<<iend<<" beads could not be localized in mesh!!!        \n";
-
-    if(false){
-
-        DRec3D Irec=DRec3D();
-
-        for(int i=0; i<iend; i++) for(auto itj=I[i].begin(); itj!=I[i].end(); itj++) Irec.record(i+1,itj->first+1,itj->second);
-
-        std::string outdir=std::string(CFG["DATAOUT"]);
-        std::string relrecname=outdir+std::string("/I.dat");
-        Irec.store(relrecname.c_str());
-
-    }
-
-    ItransI.resize(M.N_c);
-    for(int i=0; i<(M.N_c); i++) ItransI[i].clear();
-
-    for(int i1=0; i1<M.N_c; i1++){
-
-        if( (i%100)==0 ) std::cout<<"computing interpolation matrix "<<(floor((i/(iend+0.0))*1000)+0.0)/10.0<<"%                \r";
-
-        for(auto itc=M.connections[i1].begin(); itc!=M.connections[i1].end(); itc++){
-
-            int i2=*itc;
-
-            auto it1 = Itrans[i1].begin();
-            auto it2 = Itrans[i2].begin();
-            while ( it1 != Itrans[i1].end() && it2 != Itrans[i2].end() )
-            {
-                //auto debug1=it1->first;
-                //auto debug2=it2->first;
-
-                if (it1->first < it2->first){
-
-                    ++it1;
-
-                }
-                else if (it2->first < it1->first) {
-
-                    ++it2;
-
-                }
-                else {
-
-                    ItransI[i1][i2] += it1->second * it2->second;
-
-                    ++it1;
-                    ++it2;
-
-                }
-
-            }
-
-        }
-
-    }
-
-    if(false){
-
-        DRec3D ItransIrec=DRec3D();
-
-        for(int i=0; i<M.N_c; i++) for(auto itj=ItransI[i].begin(); itj!=ItransI[i].end(); itj++) ItransIrec.record(i+1,itj->first+1,itj->second);
-
-        std::string outdir=std::string(CFG["DATAOUT"]);
-        std::string relrecname=outdir+std::string("/ItransI.dat");
-        ItransIrec.store(relrecname.c_str());
-
-    }
-
-    ItransUfound.clear();
-    ItransUfound.assign(M.N_c,vec3D(0.0,0.0,0.0));
-
-    if(U_found.size()>0){
-
-        std::cout<<"check ItransUfound size of U_found is "<<U_found.size()<<"   \n";
-
-        for(i=0; i<M.N_c; i++) for(auto itIT=Itrans[i].begin(); itIT!=Itrans[i].end(); itIT++) {
-
-            //auto j=itIT->first;
-
-            ItransUfound[i] += U_found[itIT->first] * itIT->second;
-        }
-
-    }
-
-
-    if(false){
-
-        DRec3D ItransUfoundrec=DRec3D();
-
-        for(int i=0; i<M.N_c; i++) ItransUfoundrec.record(ItransUfound[i]);
-
-        std::string outdir=std::string(CFG["DATAOUT"]);
-        std::string relrecname=outdir+std::string("/ItransUfound.dat");
-        ItransUfoundrec.store(relrecname.c_str());
-
-    }
-
-    //I.clear();
-    Itrans.clear();
-
-}
-
 void VirtualBeads::computeConconnections(FiniteBodyForces& M){
 
     unsigned int c1,c2,c3; //tt,t1,t2,
@@ -873,7 +450,7 @@ void VirtualBeads::substractMedianDisplacements(){
 
     std::cout<<"Median displacement calculated to ( "<<Uxmedian<<" , "<<Uymedian<<" , "<<Uzmedian<<" )\n";
 
-    for(int i=0; i<U_found.size(); i++){
+    for(unsigned int i=0; i<U_found.size(); i++){
 
         if(abs(U_found[i])>0.01*double(CFG["VOXELSIZEX"])){
 
@@ -885,16 +462,6 @@ void VirtualBeads::substractMedianDisplacements(){
 
     }
 
-//    for(auto U: U_found){
-
-//        if(abs(U)>0.01*double(CFG["VOXELSIZEX"])){
-
-//            U.x-=Uxmedian;
-//            U.y-=Uymedian;
-//            U.z-=Uzmedian;
-//        }
-
-//    }
 }
 
 vec3D VirtualBeads::findDriftCoarse(const stack3D& stackr, const stack3D& stacka, double range, double step){
@@ -1279,88 +846,6 @@ void VirtualBeads::findDisplacements(const stack3D& stack_r, const stack3D& stac
 
 }
 
-void VirtualBeads::findDisplacementsScattered(const stack3D& stack_r, const stack3D& stack_a, double lambda){
-
-    DRec Srec=DRec();
-
-    vec3D R,U;
-
-    unsigned int t;
-    unsigned int tend=R_found.size();
-
-    U_found.assign(tend,vec3D(0.0,0.0,0.0));
-    S_0.assign(tend,0.0);
-
-    mat3D Scale=mat3D(1.0/dX,0.0,0.0,0.0,1.0/dY,0.0,0.0,0.0,1.0/dZ);
-
-    vec3D scaledShift=vec3D(sX/2,sY/2,sZ/2);
-
-    mat3D Trans=Scale;
-
-    mat3D Transinv=Trans.inv();
-
-    vec3D U_new,Umean;
-
-    double Stemp=0.0;
-
-    int n=0;
-
-    std::list<double> Sd;
-    std::list<vec3D> Ud;
-
-    bool guesspresent=(U_guess.size()>0);
-
-    for(t=0; t<tend; t++){
-
-        std::cout<<"finding Displacements "<<(floor((t/(tend+0.0))*1000)+0.0)/10.0<<"% S="<<Stemp<<" n="<<n<<"      \r";
-
-        R=(Trans*((R_found[t]))+scaledShift);
-
-        Umean=Drift;
-
-        if(guesspresent) Umean+=U_guess[t];
-
-        Umean=Trans*Umean;
-
-        substack substackr=getSubstack(stack_r,R);
-        U_new=findLocalDisplacement(substackr,stack_a,R,Umean,Srec,lambda);
-        S_0[t]=Srec.data.back();
-        Stemp=Srec.data.back();
-
-        U_new=Transinv*U_new;
-
-        U_found[t]=U_new;
-
-    }
-
-    Umean=vec3D(0.0,0.0,0.0);
-
-    int vbcount=0;
-
-    for(t=0; t<U_found.size(); t++){
-
-        if(S_0[t]>float(CFG["VB_MINMATCH"])) {
-
-        Umean+=U_found[t];
-        vbcount++;
-
-        }else{
-
-            S_0.erase(S_0.begin()+t);
-            U_found.erase(U_found.begin()+t);
-            R_found.erase(R_found.begin()+t);
-            t--;
-
-        }
-
-    }
-
-    Umean=Umean/(vbcount+0.0);
-
-    for(t=0; t<U_found.size(); t++) U_found[t]-=Umean;
-
-}
-
 void VirtualBeads::refineDisplacements(const stack3D& stack_r, const stack3D& stack_a, FiniteBodyForces& M, double lambda){
 
     DRec Srec=DRec();
@@ -1458,8 +943,6 @@ void VirtualBeads::refineDisplacements(const stack3D& stack_r, const stack3D& st
 void VirtualBeads::computeAAndb(FiniteBodyForces& M, double alpha){
 
     bool uselaplace=(std::string(CFG["REGMETHOD"])=="laplace");
-
-    bool scatteredRfound=bool(CFG["SCATTEREDRFOUND"]);
 
     double lagrain=double(CFG["REG_LAPLACEGRAIN"]);
     lagrain=lagrain*lagrain;
@@ -1563,17 +1046,7 @@ void VirtualBeads::computeAAndb(FiniteBodyForces& M, double alpha){
 
             }
 
-            if( scatteredRfound && ItransI[i].find(j)!=ItransI[i].end() ) {
-
-                //std::cout<<"ItransI has entry i="<<i<<" j="<<j<<" : "<<ItransI[i][j]<<"   \n";
-
-                hasentry=true;
-
-                A_ijtemp.xx+=ItransI[i][j];
-                A_ijtemp.yy+=ItransI[i][j];
-                A_ijtemp.zz+=ItransI[i][j]*llambda_z;
-
-            }else if(i==j && vbead[i]){
+            if(i==j && vbead[i]){
 
                 hasentry=true;
 
@@ -1621,18 +1094,7 @@ void VirtualBeads::computeAAndb(FiniteBodyForces& M, double alpha){
 
         //if(H_S[i].xx<0 && H_S[i].yy<0 && H_S[i].zz<0 && vbead[i]) b[i]-=H_S[i].transpose()*grad_S[i];
 
-        if( scatteredRfound ) {
-
-            vec3D utemp=vec3D(0.0,0.0,0.0);
-
-            for(auto itIT=ItransI[i].begin(); itIT!=ItransI[i].end(); itIT++) utemp += M.U[itIT->first] * itIT->second;
-
-            btemp=ItransUfound[i]-utemp;
-            btemp.z*=llambda_z;
-            b[i]+=btemp;
-
-
-        }else if(vbead[i]){
+        if(vbead[i]){
 
             //utemp=U_found[i];
             //utemp.z=llambda_z*utemp.z;
@@ -1692,13 +1154,9 @@ void VirtualBeads::mulA(std::vector<double>& u, std::vector<double>& f, const Fi
 
 }
 
-
-
 void VirtualBeads::recordRelaxationStatus(FiniteBodyForces& M, DRec3D& relrec){
 
     double ff=0.0,L=0.0,u2=0.0,uuf2=0.0,suuf=0.0;
-
-    bool scatteredInput=bool(CFG["SCATTEREDRFOUND"]);
 
     double lagrain=double(CFG["REG_LAPLACEGRAIN"]);
     lagrain=lagrain*lagrain;
@@ -1714,46 +1172,22 @@ void VirtualBeads::recordRelaxationStatus(FiniteBodyForces& M, DRec3D& relrec){
 
     // Displ. part of penalty function
 
-    if(!scatteredInput){
 
-        for(b=0; b<M.N_c; b++) if(M.var[b] && vbead[b]){
 
-            //std::cout<<b<<"\n";
+    for(b=0; b<M.N_c; b++) if(M.var[b] && vbead[b]){
 
-            //Uf+=abs(U_found[b]);
-            btemp=(U_found[b]-M.U[b]);
-            btemp.z*=sigz;
-            uuf2+=norm(btemp);
-            suuf+=abs(btemp);
-            bcount++;
+        //std::cout<<b<<"\n";
 
-        }
-
-    }else{
-
-        //std::vector< vec3D > u=std::vector< vec3D >();
-        //u.assign(M.N_c,vec3D(0.0,0.0,0.0));
-
-        for(unsigned int i=0; i<U_found.size(); i++){
-
-            bcount++;
-
-            btemp=U_found[i]*-1.0;
-
-            for(auto it=I[i].begin(); it!=I[i].end(); it++){
-
-                btemp+=M.U[it->first]*it->second;
-
-            }
-
-            btemp.z*=sigz;
-
-            uuf2+=norm(btemp);
-            suuf+=abs(btemp);
-
-        }
+        //Uf+=abs(U_found[b]);
+        btemp=(U_found[b]-M.U[b]);
+        btemp.z*=sigz;
+        uuf2+=norm(btemp);
+        suuf+=abs(btemp);
+        bcount++;
 
     }
+
+
 
     // Total displacements
 
@@ -1795,7 +1229,6 @@ void VirtualBeads::recordRelaxationStatus(FiniteBodyForces& M, DRec3D& relrec){
     relrec.store(relrecname.c_str());
 
 }
-
 
 vec3D VirtualBeads::relax(FiniteBodyForces& M){
 
@@ -1870,11 +1303,7 @@ vec3D VirtualBeads::relax(FiniteBodyForces& M){
 
 }
 
-
 double VirtualBeads::solve_CG(FiniteBodyForces& M){
-
-    //b=f_glo
-    //A=K_glo
 
     double tol=(M.N_c+0.0)*double(CFG["REG_SOLVER_PRECISION"]);
 

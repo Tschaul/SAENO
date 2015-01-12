@@ -105,32 +105,6 @@ void imwrite(stack2D im,const char* filename){
 
 }
 
-/*
-void imshow(stack2D& im){
-
-    int sizeX=im.size();
-    int sizeY=im[1].size();
-
-    CImg<unsigned int> img(sizeX,sizeY,1,1);        // Define a 640x400 color image with 8 bits per color component.
-    img.fill(0);
-
-    int x,y;
-
-    for(x=0;x<sizeX;x++){
-        for(y=0;y<sizeY;y++){
-
-            img(x,y)=im[x][y];
-
-            //if(im[x][y]!=0) std::cout << "check";
-
-        }
-    }
-
-    img.display();
-
-}
-*/
-
 stack2D emptyStack2D(int sizeX, int sizeY){
 
     stack2D stack;

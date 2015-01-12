@@ -134,63 +134,6 @@ void FiniteBodyForces::makeBoxmesh(){
 
 }
 
-/*
-
-void FiniteBodyForces::shrinkToSubmesh(int grain){
-
-
-
-}
-
-void FiniteBodyForces::prolongToGrain(int grain){
-
-    int nx=int(CFG["BM_N"]);
-
-    if(currentgrain>grain){
-
-        std::vector< vec3D > F;
-        F.resize(N_c);
-        for(int c=0; c<N_c; c++) F[c]=vec3D(f_glo[3*c],f_glo[3*c+1],f_glo[3*c+2]);
-
-        interpolateFromSubmesh(nx,grain,F);
-
-        for(int c=0; c<N_c; c++){
-
-            f_glo[3*c]=F[c].x;
-            f_glo[3*c+1]=F[c].y;
-            f_glo[3*c+2]=F[c].z;
-
-        }
-
-        interpolateFromSubmesh(nx,grain,U);
-        shrinkToSubmesh(grain);
-        setOuterSurf(nx,grain,var,false);
-        computePhi();
-        computeConnections();
-
-    }
-
-}
-
-
-void FiniteBodyForces::restrictToGrain(int grain, bool interpolate=true){
-
-    int nx=int(CFG["BM_N"]);
-
-    if(currentgrain<grain){
-
-        if(interpolate) restrictValuesMultiple(nx,currentgrain,grain,U);
-        shrinkToSubmesh(grain);
-        setOuterSurf(nx,grain,var,false);
-        computePhi();
-        computeConnections();
-
-    }
-
-}
-
-*/
-
 void FiniteBodyForces::loadMeshCoords(std::string fcoordsname){
 
     string xStr,yStr,zStr,zzStr;
@@ -592,7 +535,7 @@ void FiniteBodyForces::computeEpsilon(){
     double ds1=double(CFG["D_S"]);
 
 
-    buildEpsilon3(epsilon,epsbar,epsbarbar,k1,ds0,s1,ds1);
+    buildEpsilon(epsilon,epsbar,epsbarbar,k1,ds0,s1,ds1);
 
     dlmin=-1.0;
     dlmax=double(CFG["EPSMAX"]);
@@ -602,7 +545,7 @@ void FiniteBodyForces::computeEpsilon(){
 
 void FiniteBodyForces::computeEpsilon(double k1, double ds0, double s1, double ds1){
 
-    buildEpsilon3(epsilon,epsbar,epsbarbar,k1,ds0,s1,ds1);
+    buildEpsilon(epsilon,epsbar,epsbarbar,k1,ds0,s1,ds1);
 
     dlmin=-1.0;
     dlmax=double(CFG["EPSMAX"]);
@@ -1033,7 +976,6 @@ void FiniteBodyForces::mulKall(std::vector<double>& u, std::vector<double>& f){
 
 }
 
-
 void FiniteBodyForces::computeStiffening(config& results){
 
     std::vector<double> uu, Ku;
@@ -1064,7 +1006,7 @@ void FiniteBodyForces::computeStiffening(config& results){
     double ds0=double(CFG["D_0"]);
 
 
-    buildEpsilon3(epsilon,epsbar,epsbarbar,k1,ds0,0,0);
+    buildEpsilon(epsilon,epsbar,epsbarbar,k1,ds0,0,0);
 
 
 
@@ -1091,86 +1033,6 @@ void FiniteBodyForces::computeStiffening(config& results){
     computeEpsilon();
 
 }
-
-/*
-
-void FiniteBodyForces::computeStiffening_old(config& results){
-
-    std::vector<double> uu, Ku;
-
-    uu.assign(3*N_c,0.0);
-    Ku.assign(3*N_c,0.0);
-
-    int i=0;
-
-    for(i=0; i<N_c; i++) {
-
-        uu[3*i]=U[i].x;
-        uu[3*i+1]=U[i].y;
-        uu[3*i+2]=U[i].z;
-
-    }
-
-    mulK(uu,Ku);
-
-    double Energy=imul(uu,Ku);
-
-    //double u2=imul(uu,uu);
-
-    int64_t tt=0;
-
-    mat3D F;
-
-    std::vector< std::vector<double> > u_T(3,std::vector<double>(4,0.0));
-    std::vector< std::vector<double> > FF(3,std::vector<double>(3,0.0));
-
-    double D=0.0,deltal;
-
-    int t;
-
-    double k0=double(CFG["K_0"]);
-
-    vec3D s_bar;
-
-    for(tt=0; tt<N_T; tt++){
-
-        for(t=0; t<4; t++){
-
-            u_T[0][t]=U[T[tt][t]].x;
-            u_T[1][t]=U[T[tt][t]].y;
-            u_T[2][t]=U[T[tt][t]].z;
-
-        }
-
-        FF=u_T*Phi[tt];
-
-        F=mat3D(
-
-            FF[0][0]+1.0,FF[0][1],FF[0][2],
-            FF[1][0],FF[1][1]+1.0,FF[1][2],
-            FF[2][0],FF[2][1],FF[2][2]+1.0
-
-            );
-
-        for(int b=0;b<N_b;b++){
-
-            s_bar=F*s[b];
-
-            deltal=abs(s_bar)-1.0;
-
-            if(deltal>0.0) D+=k0*0.5*deltal*deltal*V[tt]/N_b;
-
-        }
-
-        //D+=FF[0][0]*FF[0][0]+FF[1][1]*FF[1][1]+FF[2][2]*FF[2][2];
-
-    }
-
-    results["STIFFENING"]=Energy/D;
-
-}
-
-*/
 
 void FiniteBodyForces::computeForceMoments(config& results){
 

@@ -12,6 +12,7 @@ extern config CFG;
 typedef std::vector< std::vector< std::vector<unsigned char> > > stack3D;
 typedef std::vector< std::vector< std::vector<double> > > substack;
 
+/*
 stack3D resize(const stack3D& stack1, int g){
 
     stack3D stack2=stack3D();
@@ -54,7 +55,7 @@ stack3D resize(const stack3D& stack1, int g){
 
 }
 
-/*
+
 double crosscorrelateSections(const stack3D& stack1, const stack3D& stack2, vec3D r, vec3D du, int big=1){
 
     int sgX=int(CFG["VB_SX"])*big;
@@ -696,6 +697,7 @@ double crosscorrelateStacks(const stack3D& stack1, const stack3D& stack2, vec3D 
 
 }
 
+/*
 void blur(stack3D& stack, stack3D& stack2 , int kernelsize){
 
     std::vector< std::vector< std::vector< double > > > kernel;
@@ -867,6 +869,8 @@ stack2D slice(stack3D& stack, double theta, double phi, int thickness){
     return img;
 
 }
+
+*/
 
 stack2D imageFromStack(const stack3D stack, int k){
 
@@ -1047,298 +1051,6 @@ void allignStacks(const stack3D& stackr, const stack3D& stackao, stack3D& stacka
 
         for(int x=0; x<sX; x++) for(int y=0; y<sY; y++) stacka[x][y][z]=floor(ima[x][y]/sumS+0.5);
 
-        //std::cout<<"check first  "<<minS<<"\n";
-
-
-        /*
-
-        for(int ii=0; ii<i; ii++){
-
-            sumS+=(S[ii]-minS);
-            dx_opt+=(S[ii]-minS)*dx_S[ii];
-            dy_opt+=(S[ii]-minS)*dy_S[ii];
-            z2_opt+=(S[ii]-minS)*z2_S[ii];
-
-            //std::cout<<S[ií]<<" "<<minS<<" "<<dx_opt<<" "<<dx_S[ii]<<"    \n";
-
-        }
-
-
-        dx_opt=dx_opt/sumS;
-        dy_opt=dy_opt/sumS;
-        z2_opt=z2_opt/sumS;
-
-        int dxf=floor(dx_opt);
-        int dyf=floor(dy_opt);
-        int z2f=floor(z2_opt);
-
-        double fdx=dx_opt-dxf;
-        double fdy=dy_opt-dyf;
-        double fz2=z2_opt-z2f;
-
-        //std::cout<<"check second  "<<dx_opt<<" "<<dy_opt<<" "<<z2_opt<<" "<<sumS<<"\n";
-
-        for(int x=0; x<sX; x++) for(int y=0; y<sY; y++) {
-
-            int xx=(x+dxf+sX)%sX;
-            int yy=(y+dyf+sY)%sY;
-            int xp=(x+dxf+1+sX)%sX;
-            int yp=(y+dyf+1+sY)%sY;
-
-            //std::cout<<xx<<" "<<xp<<" "<<yy<<" "<<yp<<" "<<z2f<<"    \n";
-
-            ima[x][y]+=(
-                            (1-fdx)*(1-fdy)*(1-fz2)*stackao[xx][yy][z2f]+
-                            (fdx)*(1-fdy)*(1-fz2)*stackao[xp][yy][z2f]+
-                            (1-fdx)*(fdy)*(1-fz2)*stackao[xx][yp][z2f]+
-                            (1-fdx)*(1-fdy)*(fz2)*stackao[xx][yy][z2f+1]+
-                            (fdx)*(fdy)*(1-fz2)*stackao[xp][yp][z2f]+
-                            (1-fdx)*(fdy)*(fz2)*stackao[xx][yp][z2f+1]+
-                            (fdx)*(1-fdy)*(fz2)*stackao[xp][yy][z2f+1]+
-                            (fdx)*(fdy)*(fz2)*stackao[xp][yp][z2f+1]
-                        );
-
-        }
-
-        //std::cout<<"check third  \n";
-
-
-        for(int z2=zoptold-r; z2<zoptold+r+1; z2++) if(z2>=0 && z2<sZ) for(int dx=dxoptold-ddx; dx<(dxoptold+ddx+1); dx++) for(int dy=dyptold-ddy; dy<(dyptold+ddy+1); dy++){
-
-            //std::cout<<"now at z1="<<z<<" z2="<<" dx="<<dx<<" dy="<<dy<<"       \n";
-
-            S=correlateImagesFromStacks(stackr,stackao,z,z2,dx,dy,meanr,meanao);
-
-            Svalssum+=S;
-
-            if(S>Sopt){
-
-                zopt=z2;
-                dxopt=dx;
-                dyopt=dy;
-                Sopt=S;
-
-            }
-
-            for(int x=0; x<sX; x++) for(int y=0; y<sY; y++) {
-
-                int xx=(x+dx+sX)%sX;
-                int yy=(y+dy+sY)%sY;
-
-                ima[x][y]+=S*stackao[xx][yy][z2];
-
-            }
-
-        }
-        */
-
-        //for(int x=0; x<sX; x++) for(int y=0; y<sY; y++) stacka[x][y][z]=floor(ima[x][y]+0.5);
-
-    }
-
-}
-
-void allignStacks_new(const stack3D& stackr, const stack3D& stackao, stack3D& stacka, DRec3D& arec2, double idx=0, double idy=0, double idz=0){
-
-
-    DRec3D arec=DRec3D();
-
-    int sX=stackr.size();
-    int sY=stackr[0].size();
-    int sZ=stackr[0][0].size();
-
-    int safety=sZ/16;
-
-    stacka.assign(sX,
-        std::vector< std::vector< unsigned char > >(sY,
-            std::vector< unsigned char >(sZ, 0 )
-        )
-    );
-
-
-    double meanr=mean(stackr);
-    double meanao=mean(stackao);
-
-    std::vector<int> indicesz;
-    std::vector<int> indicesdx;
-    std::vector<int> indicesdy;
-    std::vector<double> Svals;
-
-    //int zopt=3,dxopt=0,dyopt=0;
-    int r0=3,r=3;
-    int ddx=3,ddy=3;
-
-    int dx_opt=0;
-    int dy_opt=0;
-    int z2_opt=0;
-
-    for(int z=0; z<sZ; z++){
-
-
-        if( z<(safety+r0) ){
-            r=r0+safety;
-            z2_opt=z+idz;
-            dx_opt=idx;
-            dy_opt=idy;
-        }else r=r0;
-
-        std::cout<<"alligning stacks z="<<z<<" dzopt="<<z2_opt-z<<" dxopt="<<dx_opt<<" dyopt="<<dy_opt<<"  \r";
-
-
-        //stack2D imr=imageFromStack(stackr,z);
-        std::vector< std::vector<double> > ima;
-
-        ima.assign(sX,
-                std::vector< double >(sY, 0.0 )
-            );
-
-        int zoptold=floor(z2_opt+0.5);
-        int dxoptold=floor(dx_opt+0.5);
-        int dyptold=floor(dy_opt+0.5);
-
-        dx_opt=0.0;
-        dy_opt=0.0;
-        z2_opt=0.0;
-
-        std::vector<double> S;
-        std::vector<int> dx_S,dy_S,z2_S;
-        S.clear();
-        dx_S.clear();
-        dy_S.clear();
-        z2_S.clear();
-
-        double Stemp;
-        double sumS=0.0;
-        double minS=1.0e20;
-        int i=0;
-
-        for(int z2=zoptold-r; z2<zoptold+r+1; z2++) if(z2>=0 && z2<sZ) for(int dx=dxoptold-ddx; dx<(dxoptold+ddx+1); dx++) for(int dy=dyptold-ddy; dy<(dyptold+ddy+1); dy++){
-
-            i++;
-            Stemp=correlateImagesFromStacks(stackr,stackao,z,z2,dx,dy,meanr,meanao)/(2621440.0);
-            S.push_back(Stemp);
-            dx_S.push_back(dx);
-            dy_S.push_back(dy);
-            z2_S.push_back(z2);
-
-            //std::cout<<Stemp<<" "<<dx<<" "<<dy<<" "<<z2<<"    \n";
-
-        }
-
-        int maxi=maximal(S);
-
-        dx_opt=dx_S[maxi];
-        dy_opt=dy_S[maxi];
-        z2_opt=z2_S[maxi];
-
-        double dxsp=0.0;
-        double dysp=0.0;
-        double dzsp=0.0;
-
-        for(int ii=0; ii<i; ii++) if( abs(dx_S[ii]-dx_opt)<2 && abs(dy_S[ii]-dy_opt)<2 && abs(z2_S[ii]-z2_opt)<2) if(S[ii]<minS) minS=S[ii];
-
-        for(int ii=0; ii<i; ii++) if( abs(dx_S[ii]-dx_opt)<2 && abs(dy_S[ii]-dy_opt)<2 && abs(z2_S[ii]-z2_opt)<2){
-
-            sumS+=(S[ii]-minS);
-
-
-            dxsp+=(S[ii]-minS)*dx_S[ii];
-            dysp+=(S[ii]-minS)*dy_S[ii];
-            dzsp+=(S[ii]-minS)*(z2_S[ii]-z);
-
-            /*
-
-            for(int x=0; x<sX; x++) for(int y=0; y<sY; y++) {
-
-                int xx=(x+dx_S[ii]+sX)%sX;
-                int yy=(y+dy_S[ii]+sY)%sY;
-
-                //std::cout<<xx<<" "<<xp<<" "<<yy<<" "<<yp<<" "<<z2f<<"    \n";
-
-                ima[x][y]+=(S[ii]-minS)*stackao[xx][yy][z2_S[ii]];
-
-            }
-
-            */
-
-            //std::cout<<S[ií]<<" "<<minS<<" "<<dx_opt<<" "<<dx_S[ii]<<"    \n";
-
-        }
-
-        dxsp=dxsp/sumS;
-        dysp=dysp/sumS;
-        dzsp=dzsp/sumS;
-
-        arec.record(vec3D(dxsp,dysp,dzsp));
-
-        //std::cout<<"alligning stacks - find subpixel - z="<<z<<" dzsp="<<dzsp<<" dxsp="<<dxsp<<" dysp="<<dysp<<"  \r";
-
-        //for(int x=0; x<sX; x++) for(int y=0; y<sY; y++) stacka[x][y][z]=floor(ima[x][y]/sumS+0.5);
-
-    }
-
-    int boxcar=20;
-
-    for(int z1=0; z1<sZ; z1++){
-
-        vec3D mean=vec3D(0.0,0.0,0.0);
-        int count=0;
-
-        for(int z2=z1-boxcar; z2<z1+boxcar+1; z2++) if(z2>=0 && z2<sZ){
-
-            mean=mean+arec.data[z2];
-            count++;
-
-        }
-
-        mean=mean/(count+0.0);
-
-        arec2.record(mean);
-
-        std::cout<<"filter sp - z="<<z1<<" dzsp="<<mean.z<<" dxsp="<<mean.x<<" dysp="<<mean.z<<"  \r";
-
-    }
-
-    int ibox=2;
-
-    for(int z1=0; z1<sZ; z1++){
-
-        //int dxround=round(arec2.data[z1].x);
-        //int dyround=round(arec2.data[z1].y);
-        int dzround=round(arec2.data[z1].z);
-
-        double sumS=0.0;
-
-        std::vector< std::vector<double> > ima;
-
-        ima.assign(sX,
-                std::vector< double >(sY, 0.0 )
-            );
-
-        for(int z2=z1+dzround-ibox; z2<z1+dzround+ibox+1; z2++) if(z2>=0 && z2<sZ) for(int dx=ibox-ddx; dx<(ibox+ddx+1); dx++) for(int dy=ibox-ddy; dy<(ibox+ddy+1); dy++){
-
-            double lweight=exp(-1.0*norm( vec3D(dx,dy,z2-z1)-arec.data[z1] ));
-
-            sumS+=lweight;
-
-            for(int x=0; x<sX; x++) for(int y=0; y<sY; y++) {
-
-                int xx=(x+dx+sX)%sX;
-                int yy=(y+dy+sY)%sY;
-
-                //std::cout<<xx<<" "<<xp<<" "<<yy<<" "<<yp<<" "<<z2f<<"    \n";
-
-                ima[x][y]+=lweight*stackao[xx][yy][z2];
-
-            }
-
-        }
-
-        for(int x=0; x<sX; x++) for(int y=0; y<sY; y++) stacka[x][y][z1]=floor(ima[x][y]/sumS+0.5);
-
-
-        std::cout<<"apply sp - z="<<z1<<" dzsp="<<arec.data[z1].z<<" dxsp="<<arec.data[z1].x<<" dysp="<<arec.data[z1].z<<"  \r";
-
     }
 
 }
@@ -1366,7 +1078,6 @@ void saveStack(const stack3D& stack, std::string fnamebase, std::string fnameend
         imwrite(im,fnamez.c_str());
 
     }
-
 
 }
 
@@ -1536,124 +1247,3 @@ void readStackSprintf(stack3D& stack, std::string fnamebase, int zfrom, int zto,
         }
     }
 }
-
-std::multiset<std::tuple<unsigned char,int,int,int>> findLocalMinima(const stack3D& stack,int dx,int dy,int dz,unsigned int maxcount){
-
-    int sX=stack.size();
-    int sY=stack[0].size();
-    int sZ=stack[0][0].size();
-
-    std::multiset<std::tuple<unsigned char,int,int,int>> vlist;
-    vlist.clear();
-
-    for(int i=dx; i<sX-dx; i++){
-
-        std::cout<<"finding local minima "<<floor( (i+0.0)/(sX+0.0)*10000 )/100<<"% done         \r";
-
-        for(int j=dy; j<sY-dy; j++) for(int k=dz; k<sZ-dz; k++){
-
-
-            bool min=true;
-
-            for(auto di=-dx; di<=dx; di++) for(auto dj=-dy; dj<=dy; dj++) for(auto dk=-dz; dk<=dz; dk++){
-
-                if( stack[i+di][j+dj][k+dk]<stack[i][j][k] ){
-
-                    min=false;
-
-                    goto outofloop;
-
-                }
-
-            }
-
-            outofloop:
-
-            if(min){
-
-                if(vlist.size()>maxcount-1){
-
-                    if(stack[i][j][k]<std::get<0>(*vlist.rbegin())){
-
-                        vlist.insert(std::tuple<unsigned char, int, int, int>(stack[i][j][k],i,j,k) );
-
-                        vlist.erase(*vlist.rbegin());
-
-                    }
-
-                }else{
-
-                    vlist.insert( std::tuple<unsigned char, int, int, int>(stack[i][j][k],i,j,k));
-
-                }
-
-            }
-
-        }
-
-    }
-
-    return vlist;
-
-}
-
-std::multiset<std::tuple<unsigned char,int,int,int>> findLocalMaxima(const stack3D& stack,int dx,int dy,int dz,unsigned int maxcount){
-
-    int sX=stack.size();
-    int sY=stack[0].size();
-    int sZ=stack[0][0].size();
-
-    std::multiset<std::tuple<unsigned char,int,int,int>> vlist;
-    vlist.clear();
-
-    for(int i=dx; i<sX-dx; i++){
-
-        std::cout<<"finding local maxima "<<floor( (i+0.0)/(sX+0.0)*10000 )/100<<"% done         \r";
-
-        for(int j=dy; j<sY-dy; j++) for(int k=dz; k<sZ-dz; k++){
-
-
-            bool max=true;
-
-            for(auto di=-dx; di<=dx; di++) for(auto dj=-dy; dj<=dy; dj++) for(auto dk=-dz; dk<=dz; dk++){
-
-                if( stack[i+di][j+dj][k+dk]>stack[i][j][k] ){
-
-                    max=false;
-
-                    goto outofloop;
-
-                }
-
-            }
-
-            outofloop:
-
-            if(max){
-
-                if(vlist.size()>=maxcount){
-
-                    if(stack[i][j][k]>std::get<0>(*vlist.begin())){
-
-                        vlist.insert(std::tuple<unsigned char, int, int, int>(stack[i][j][k],i,j,k) );
-
-                        vlist.erase(*vlist.begin());
-
-                    }
-
-                }else{
-
-                    vlist.insert( std::tuple<unsigned char, int, int, int>(stack[i][j][k],i,j,k));
-
-                }
-
-            }
-
-        }
-
-    }
-
-    return vlist;
-
-}
-

@@ -41,7 +41,6 @@ config CFG;
 #include "cpp/FiniteBodyForces.cpp"
 
 #include "cpp/imageHelper.cpp"
-//#include "FBMLib/displayHelper.cpp"
 
 #include "cpp/downhillSimplexHelper.cpp"
 #include "cpp/stack3DHelper.cpp"
@@ -243,12 +242,7 @@ int main(int argc,char *argv[])
                 float dy=-floor(B.Drift.y/B.dY+0.5);
                 float dz=-floor(B.Drift.z/B.dZ+0.5);
 
-                //DRec3D arec=DRec3D();
-
-                //allignStacks_new(stacka,stackro,stackr,arec,dx,dy,dz);
                 allignStacks(stacka,stackro,stackr,dx,dy,dz);
-
-                //arec.store( (outdir+std::string("/arec.dat")).c_str() );
 
                 if(CFG["SAVEALLIGNEDSTACK"]) saveStack(stackr,outdir+std::string("/stackr"));
 
@@ -286,25 +280,16 @@ int main(int argc,char *argv[])
             }
 
 
-            if(bool(CFG["FINDBEADS"])) B.findBeads(stackr);
             else if(!bool(CFG["BOXMESH"])) B.loadVbeads((indir+std::string(CFG["VBEADS"])).c_str());
 
-            if(bool(CFG["SCATTEREDRFOUND"])){
-                if(bool(CFG["INITIALGUESS"])) B.loadGuessScattered(M,indir+std::string(CFG["UGUESS"]));
-                B.findDisplacementsScattered(stackr,stacka,float(CFG["VB_REGPARA"]));
-                B.storeRfound(outdir+std::string("/Rfound.dat"));
-                M.computePhi();
+            if(bool(CFG["INITIALGUESS"])) B.loadGuess(M,indir+std::string(CFG["UGUESS"]));
+            B.findDisplacements(stackr,stacka,M,float(CFG["VB_REGPARA"]));
+            if(bool(CFG["REFINEDISPLACEMENTS"])){
                 M.computeConnections();
-                B.computeInterpolationMatrix(M);
-            }else{
-                if(bool(CFG["INITIALGUESS"])) B.loadGuess(M,indir+std::string(CFG["UGUESS"]));
-                B.findDisplacements(stackr,stacka,M,float(CFG["VB_REGPARA"]));
-                if(bool(CFG["REFINEDISPLACEMENTS"])){
-                    M.computeConnections();
-                    B.refineDisplacements(stackr,stacka,M,float(CFG["VB_REGPARAREF"]));
-                }
-                if(bool(CFG["SUBTRACTMEDIANDISPL"])) B.substractMedianDisplacements();
+                B.refineDisplacements(stackr,stacka,M,float(CFG["VB_REGPARAREF"]));
             }
+            if(bool(CFG["SUBTRACTMEDIANDISPL"])) B.substractMedianDisplacements();
+
             B.storeUfound( outdir+"/"+std::string(CFG["UFOUND"]),outdir+"/"+std::string(CFG["SFOUND"]));
             //B.storeUfound(outdir+"/Ufound1.dat",outdir+"/Sfound1.dat");
             M.storeRAndU(outdir+"/R.dat",outdir+"/U.dat");
@@ -325,13 +310,6 @@ int main(int argc,char *argv[])
 
             B.Drift=vec3D(0.0,0.0,0);
             B.loadUfound((indir+std::string("/")+std::string(CFG["UFOUND"])).c_str(),(indir+std::string("/")+std::string(CFG["SFOUND"])).c_str());
-
-            if(bool(CFG["SCATTEREDRFOUND"])){
-                M.computePhi();
-                M.computeConnections();
-                B.loadScatteredRfound((indir+std::string("/")+std::string(CFG["RFOUND"])).c_str());
-                B.computeInterpolationMatrix(M);
-            }
 
             if(std::string(CFG["MODE"])=="computation") M.loadConfiguration((indir+std::string(CFG["UFOUND"])).c_str());
 
