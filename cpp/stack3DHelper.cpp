@@ -1113,13 +1113,27 @@ void readStackWildcard(stack3D& stack, std::string fstr, int jump=1){
 
     QDir dir=QDir(dirstring);
 
+    if(!dir.exists()){
+
+        std::cout<<"ERROR: Couldn't find directory "
+            <<dirstring.toStdString()<<"\n";
+    }
+
     QStringList filters;
 
     if(filename.length()>0) filters<<filename;
 
     QStringList entryList=dir.entryList(filters);
 
+    if(entryList.length()==0 && dir.exists()){
+
+        std::cout<<"ERROR: Couldn't find any files matching "
+            <<filename.toStdString()<<" in directory "
+            <<dirstring.toStdString()<<"\n";
+
+    }
     QImage image;
+
     image.load(dirstring + entryList.first());
 
     int sX=image.width();
